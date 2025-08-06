@@ -229,7 +229,7 @@ class ProPresenter6Exporter:
         rtf_data = self.create_rtf_data(rtf_content)
         element.set('RTFData', rtf_data)
         
-        # Add FlowData (Windows Flow Document)
+        # Add FlowData (Windows Flow Document) - must be escaped XML text
         flow_data = self.create_flow_data(content)
         flow_element = ET.SubElement(element, 'FlowData')
         flow_element.text = flow_data
@@ -268,13 +268,13 @@ class ProPresenter6Exporter:
         return rtf_data
     
     def create_flow_data(self, content: str) -> str:
-        """Create Windows FlowDocument data"""
-        # Escape XML content
-        xml_content = content.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')
+        """Create Windows FlowDocument data as escaped XML"""
+        # First escape the text content that will go inside the XML
+        text_content = content.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')
         
         # Create paragraphs for each line
         paragraphs = []
-        for line in xml_content.split('\n'):
+        for line in text_content.split('\n'):
             if line.strip():
                 paragraphs.append(
                     f'<Paragraph Margin="0,0,0,0" TextAlignment="Center" FontFamily="{self.default_font_name}" FontSize="{self.default_font_size}">'
@@ -282,13 +282,22 @@ class ProPresenter6Exporter:
                     f'{line.strip()}</Run></Paragraph>'
                 )
         
-        flow_data = (
+        # Create the FlowDocument XML
+        flow_xml = (
             f'<FlowDocument TextAlignment="Center" PagePadding="5,0,5,0" AllowDrop="True" '
             f'xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">'
             f'{"".join(paragraphs)}</FlowDocument>'
         )
         
-        return flow_data
+        # Now escape the entire XML for storage in the text content
+        escaped_flow_data = (
+            flow_xml.replace('&', '&amp;')
+            .replace('<', '&lt;')
+            .replace('>', '&gt;')
+            .replace('"', '&quot;')
+        )
+        
+        return escaped_flow_data
     
     def create_font_data(self) -> str:
         """Create font data XML"""
