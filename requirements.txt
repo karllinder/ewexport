@@ -1,0 +1,15 @@
+# GUI framework (built into Python)
+# tkinter is included with Python standard library
+
+# RTF parsing
+striprtf>=1.6
+
+# Additional utilities that may be needed
+# xml.etree.ElementTree is built into Python
+# sqlite3 is built into Python
+# pathlib is built into Python
+# uuid is built into Python
+# re is built into Python
+
+# Development and building
+pyinstaller>=5.0
