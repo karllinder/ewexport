@@ -9,7 +9,7 @@ import os
 import threading
 from typing import List, Optional
 from src.database.easyworship import EasyWorshipDatabase
-from src.export.propresenter import ProPresenterExporter
+from src.export.propresenter_v2 import ProPresenter6Exporter
 
 class MainWindow:
     def __init__(self):
@@ -22,7 +22,7 @@ class MainWindow:
         self.selected_songs = set()
         self.songs_data = []
         self.db = None
-        self.exporter = ProPresenterExporter()
+        self.exporter = ProPresenter6Exporter()
         self.export_in_progress = False
         
         self.setup_ui()
