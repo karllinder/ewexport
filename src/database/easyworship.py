@@ -3,8 +3,21 @@ EasyWorship database access layer
 """
 
 import sqlite3
+import logging
 from pathlib import Path
 from typing import List, Dict, Optional, Any
+
+# Import processing modules - handle both relative and absolute imports
+try:
+    from ..processing import parse_rtf, detect_sections, clean_text
+except ImportError:
+    # Fallback for direct script execution
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from processing import parse_rtf, detect_sections, clean_text
+
+logger = logging.getLogger(__name__)
 
 class EasyWorshipDatabase:
     def __init__(self, db_path: str):
@@ -85,3 +98,109 @@ class EasyWorshipDatabase:
             return count
         except Exception:
             return 0
+    
+    def get_song_with_processed_lyrics(self, song_rowid: int, 
+                                     advanced_section_detection: bool = False) -> Optional[Dict[str, Any]]:
+        """
+        Get a song with fully processed lyrics including RTF parsing and section detection.
+        
+        Args:
+            song_rowid: Row ID of the song in the database
+            advanced_section_detection: Whether to use advanced section detection heuristics
+            
+        Returns:
+            Dictionary containing song metadata and processed lyrics, or None if not found
+        """
+        # Get song metadata
+        conn = sqlite3.connect(self.songs_db)
+        conn.row_factory = sqlite3.Row
+        
+        query = """
+        SELECT 
+            rowid,
+            title,
+            COALESCE(author, '') as author,
+            COALESCE(copyright, '') as copyright,
+            COALESCE(administrator, '') as administrator,
+            COALESCE(reference_number, '') as reference_number,
+            COALESCE(tags, '') as tags,
+            COALESCE(description, '') as description
+        FROM song
+        WHERE rowid = ?
+        """
+        
+        cursor = conn.execute(query, (song_rowid,))
+        song_row = cursor.fetchone()
+        conn.close()
+        
+        if not song_row:
+            logger.warning(f"Song with rowid {song_rowid} not found")
+            return None
+        
+        song_data = dict(song_row)
+        
+        # Get RTF lyrics
+        rtf_content = self.get_song_lyrics(song_rowid)
+        if not rtf_content:
+            logger.debug(f"No lyrics found for song '{song_data['title']}'")
+            song_data.update({
+                'parsed_lyrics': None,
+                'sections': [],
+                'has_sections': False,
+                'processed_text': ''
+            })
+            return song_data
+        
+        # Parse RTF content
+        parsed_rtf = parse_rtf(rtf_content)
+        if not parsed_rtf or not parsed_rtf.get('has_content'):
+            logger.warning(f"Failed to parse RTF content for song '{song_data['title']}'")
+            song_data.update({
+                'parsed_lyrics': None,
+                'sections': [],
+                'has_sections': False,
+                'processed_text': ''
+            })
+            return song_data
+        
+        # Clean the text
+        cleaned_text = clean_text(parsed_rtf['plain_text'], for_song=True)
+        
+        # Detect sections
+        section_data = detect_sections(cleaned_text, advanced=advanced_section_detection)
+        
+        # Add processed data to song
+        song_data.update({
+            'parsed_lyrics': parsed_rtf,
+            'sections': section_data['sections'],
+            'has_sections': section_data['has_sections'],
+            'processed_text': cleaned_text
+        })
+        
+        logger.debug(f"Processed song '{song_data['title']}' with {len(section_data['sections'])} sections")
+        return song_data
+    
+    def get_all_songs_with_processed_lyrics(self, 
+                                          advanced_section_detection: bool = False) -> List[Dict[str, Any]]:
+        """
+        Get all songs with processed lyrics.
+        
+        Args:
+            advanced_section_detection: Whether to use advanced section detection heuristics
+            
+        Returns:
+            List of song dictionaries with processed lyrics
+        """
+        songs = self.get_all_songs()
+        processed_songs = []
+        
+        for song in songs:
+            processed_song = self.get_song_with_processed_lyrics(
+                song['rowid'], 
+                advanced_section_detection
+            )
+            if processed_song:
+                processed_songs.append(processed_song)
+        
+        logger.info(f"Processed {len(processed_songs)} songs")
+        return processed_songs

@@ -2,7 +2,7 @@
 # tkinter is included with Python standard library
 
 # RTF parsing
-striprtf>=1.6
+striprtf>=0.0.29
 
 # Additional utilities that may be needed
 # xml.etree.ElementTree is built into Python
