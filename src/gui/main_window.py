@@ -228,7 +228,7 @@ class MainWindow:
         """Toggle selection state of an item"""
         tags = self.tree.item(item, 'tags')
         if tags and len(tags) > 0:
-            song_id = tags[0]
+            song_id = int(tags[0])  # Ensure it's an integer
             
             if song_id in self.selected_songs:
                 self.selected_songs.remove(song_id)
@@ -244,7 +244,7 @@ class MainWindow:
         for item in self.tree.get_children():
             tags = self.tree.item(item, 'tags')
             if tags and len(tags) > 0:
-                song_id = tags[0]
+                song_id = int(tags[0])  # Ensure it's an integer
                 self.selected_songs.add(song_id)
                 self.tree.item(item, text='☑')
         
@@ -316,8 +316,10 @@ class MainWindow:
                 if song_data['rowid'] in selected_song_ids:
                     # Get processed lyrics with sections
                     processed = self.db.get_song_with_processed_lyrics(song_data['rowid'])
+                    
                     if processed and processed.get('sections'):
-                        songs_to_export.append((song_data, processed['sections']))
+                        sections = processed['sections']
+                        songs_to_export.append((song_data, sections))
                     else:
                         # Handle songs without lyrics gracefully
                         empty_sections = [{'type': 'verse', 'content': 'No lyrics available'}]
