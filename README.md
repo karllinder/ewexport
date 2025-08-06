@@ -12,14 +12,22 @@ A Windows desktop application that converts songs from EasyWorship 6.1 database 
 
 ## Status
 
-🚧 **Under Development** - Sprint 1 Complete (Research & Planning)
+🚧 **Under Development** - Sprint 2 Complete (MVP GUI Implementation)
 
-## Planned Features
+### Completed Features (Sprint 2)
+- ✅ Basic Tkinter GUI with song list
+- ✅ SQLite database connection
+- ✅ Auto-detection of EasyWorship database path
+- ✅ Display songs with metadata (Title, Author, Copyright, CCLI)
+- ✅ Song selection with checkboxes
+- ✅ Select All/None functionality
+- ✅ Real-time selection counter
 
-- **Sprint 2**: Basic GUI and database reading
+### Upcoming Features
+
 - **Sprint 3**: RTF parsing and ProPresenter export
 - **Sprint 4**: Advanced options and batch operations
-- **Sprint 5**: ProPresenter 7 support and additional features
+- **Sprint 5**: Search, filtering, and settings persistence
 
 ## Technology Stack
 
@@ -36,11 +44,29 @@ A Windows desktop application that converts songs from EasyWorship 6.1 database 
 
 ## Installation
 
-*Coming in Sprint 2*
+1. Clone the repository:
+```bash
+git clone https://github.com/karllinder/ewexport.git
+cd ewexport
+```
+
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
 ## Usage
 
-*Coming in Sprint 2*
+1. Run the application:
+```bash
+python run.py
+```
+
+2. The application will auto-detect your EasyWorship database location, or you can browse to select it manually
+
+3. Select songs from the list using checkboxes or use Select All/None buttons
+
+4. Click "Export Selected Songs" (full export functionality coming in Sprint 3)
 
 ## Acknowledgments
 
