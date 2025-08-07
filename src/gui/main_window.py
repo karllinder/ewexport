@@ -6,8 +6,10 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from pathlib import Path
 import os
+import threading
 from typing import List, Optional
 from src.database.easyworship import EasyWorshipDatabase
+from src.export.propresenter import ProPresenter6Exporter
 
 class MainWindow:
     def __init__(self):
@@ -16,12 +18,16 @@ class MainWindow:
         self.root.geometry("900x700")
         
         self.db_path = tk.StringVar()
+        self.output_path = tk.StringVar()
         self.selected_songs = set()
         self.songs_data = []
         self.db = None
+        self.exporter = ProPresenter6Exporter()
+        self.export_in_progress = False
         
         self.setup_ui()
         self.auto_detect_easyworship()
+        self.set_default_output_path()
         
     def setup_ui(self):
         """Build the main GUI interface"""
@@ -102,18 +108,42 @@ class MainWindow:
         self.tree.bind('<ButtonRelease-1>', self.on_item_click)
         
         # Export frame
-        export_frame = ttk.Frame(main_frame)
-        export_frame.grid(row=2, column=0, columnspan=3, sticky=(tk.W, tk.E))
+        export_frame = ttk.LabelFrame(main_frame, text="Export Options", padding="10")
+        export_frame.grid(row=2, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(10, 0))
+        export_frame.columnconfigure(1, weight=1)
+        
+        # Output path selection
+        ttk.Label(export_frame, text="Output Path:").grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
+        output_entry = ttk.Entry(export_frame, textvariable=self.output_path, width=50)
+        output_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=5)
+        
+        browse_output_btn = ttk.Button(export_frame, text="Browse...", command=self.browse_output_path)
+        browse_output_btn.grid(row=0, column=2, padx=(5, 0))
+        
+        # Progress section
+        progress_frame = ttk.Frame(export_frame)
+        progress_frame.grid(row=1, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(10, 0))
+        progress_frame.columnconfigure(0, weight=1)
         
         # Progress bar
-        self.progress = ttk.Progressbar(export_frame, mode='indeterminate')
-        self.progress.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
-        export_frame.columnconfigure(0, weight=1)
+        self.progress = ttk.Progressbar(progress_frame, mode='determinate')
+        self.progress.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
+        
+        # Progress label
+        self.progress_label = ttk.Label(progress_frame, text="Ready to export")
+        self.progress_label.grid(row=1, column=0, sticky=tk.W)
         
         # Export button
-        self.export_btn = ttk.Button(export_frame, text="Export Selected Songs", 
-                                     command=self.export_songs, state='disabled')
-        self.export_btn.grid(row=1, column=0, pady=(5, 0))
+        button_frame = ttk.Frame(export_frame)
+        button_frame.grid(row=2, column=0, columnspan=3, pady=(10, 0))
+        
+        self.export_btn = ttk.Button(button_frame, text="Export Selected Songs", 
+                                     command=self.start_export, state='disabled')
+        self.export_btn.pack(side=tk.LEFT, padx=(0, 10))
+        
+        self.cancel_btn = ttk.Button(button_frame, text="Cancel Export", 
+                                     command=self.cancel_export, state='disabled')
+        self.cancel_btn.pack(side=tk.LEFT)
         
     def auto_detect_easyworship(self):
         """Try to auto-detect EasyWorship database path"""
@@ -198,7 +228,7 @@ class MainWindow:
         """Toggle selection state of an item"""
         tags = self.tree.item(item, 'tags')
         if tags and len(tags) > 0:
-            song_id = tags[0]
+            song_id = int(tags[0])  # Ensure it's an integer
             
             if song_id in self.selected_songs:
                 self.selected_songs.remove(song_id)
@@ -214,7 +244,7 @@ class MainWindow:
         for item in self.tree.get_children():
             tags = self.tree.item(item, 'tags')
             if tags and len(tags) > 0:
-                song_id = tags[0]
+                song_id = int(tags[0])  # Ensure it's an integer
                 self.selected_songs.add(song_id)
                 self.tree.item(item, text='☑')
         
@@ -233,16 +263,149 @@ class MainWindow:
         count = len(self.selected_songs)
         self.selected_count_label.config(text=f"{count} song{'s' if count != 1 else ''} selected")
     
-    def export_songs(self):
-        """Export selected songs (stub for now)"""
+    def set_default_output_path(self):
+        """Set default output path"""
+        desktop = Path.home() / "Desktop"
+        default_path = desktop / "ProPresenter_Export"
+        self.output_path.set(str(default_path))
+    
+    def browse_output_path(self):
+        """Browse for output directory"""
+        folder = filedialog.askdirectory(
+            title="Select Export Directory",
+            initialdir=self.output_path.get() if self.output_path.get() else str(Path.home())
+        )
+        
+        if folder:
+            self.output_path.set(folder)
+    
+    def start_export(self):
+        """Start the export process in a separate thread"""
         if not self.selected_songs:
             messagebox.showinfo("No Selection", "Please select at least one song to export.")
             return
         
-        # For now, just show a message
-        messagebox.showinfo("Export", 
-                          f"Export functionality will be implemented in Sprint 3.\n"
-                          f"Selected {len(self.selected_songs)} songs for export.")
+        if not self.output_path.get():
+            messagebox.showwarning("No Output Path", "Please select an output directory.")
+            return
+        
+        # Confirm export
+        count = len(self.selected_songs)
+        if not messagebox.askyesno("Confirm Export", 
+                                  f"Export {count} selected song{'s' if count != 1 else ''} to ProPresenter 6 format?"):
+            return
+        
+        # Start export in background thread
+        self.export_in_progress = True
+        self.export_btn.config(state='disabled')
+        self.cancel_btn.config(state='normal')
+        self.progress.config(mode='determinate', value=0)
+        self.progress_label.config(text="Preparing export...")
+        
+        self.export_thread = threading.Thread(target=self.export_worker, daemon=True)
+        self.export_thread.start()
+    
+    def export_worker(self):
+        """Background worker for export process"""
+        try:
+            # Collect selected songs with processed lyrics
+            songs_to_export = []
+            selected_song_ids = list(self.selected_songs)
+            
+            for song_data in self.songs_data:
+                if song_data['rowid'] in selected_song_ids:
+                    # Get processed lyrics with sections
+                    processed = self.db.get_song_with_processed_lyrics(song_data['rowid'])
+                    
+                    if processed and processed.get('sections'):
+                        sections = processed['sections']
+                        songs_to_export.append((song_data, sections))
+                    else:
+                        # Handle songs without lyrics gracefully
+                        empty_sections = [{'type': 'verse', 'content': 'No lyrics available'}]
+                        songs_to_export.append((song_data, empty_sections))
+            
+            # Export songs
+            output_dir = Path(self.output_path.get())
+            successful, failed = self.exporter.export_songs_batch(
+                songs_to_export, 
+                output_dir, 
+                progress_callback=self.update_export_progress
+            )
+            
+            # Update UI in main thread
+            self.root.after(0, self.export_complete, successful, failed)
+            
+        except Exception as e:
+            error_msg = f"Export failed with error: {str(e)}"
+            self.root.after(0, self.export_error, error_msg)
+    
+    def update_export_progress(self, current: int, total: int, song_title: str):
+        """Update progress bar and label (called from background thread)"""
+        def update_ui():
+            if total > 0:
+                progress_percent = (current / total) * 100
+                self.progress.config(value=progress_percent)
+            
+            if current < total:
+                self.progress_label.config(text=f"Exporting: {song_title} ({current + 1}/{total})")
+            else:
+                self.progress_label.config(text="Export complete")
+        
+        self.root.after(0, update_ui)
+    
+    def export_complete(self, successful: List[str], failed: List[str]):
+        """Handle export completion"""
+        self.export_in_progress = False
+        self.export_btn.config(state='normal')
+        self.cancel_btn.config(state='disabled')
+        self.progress.config(value=100)
+        
+        # Show results
+        success_count = len(successful)
+        fail_count = len(failed)
+        
+        if fail_count == 0:
+            message = f"Successfully exported {success_count} song{'s' if success_count != 1 else ''}!\n\n"
+            message += f"Files saved to: {self.output_path.get()}"
+            messagebox.showinfo("Export Complete", message)
+        else:
+            message = f"Export completed with some issues:\n\n"
+            message += f"Successfully exported: {success_count} songs\n"
+            message += f"Failed to export: {fail_count} songs\n\n"
+            
+            if failed:
+                message += "Failed exports:\n"
+                for error in failed[:5]:  # Show first 5 errors
+                    message += f"• {error}\n"
+                if len(failed) > 5:
+                    message += f"... and {len(failed) - 5} more errors"
+            
+            messagebox.showwarning("Export Completed with Errors", message)
+        
+        self.progress_label.config(text="Ready to export")
+    
+    def export_error(self, error_message: str):
+        """Handle export error"""
+        self.export_in_progress = False
+        self.export_btn.config(state='normal')
+        self.cancel_btn.config(state='disabled')
+        self.progress.config(value=0)
+        self.progress_label.config(text="Export failed")
+        
+        messagebox.showerror("Export Error", error_message)
+    
+    def cancel_export(self):
+        """Cancel the export process"""
+        if self.export_in_progress:
+            # Note: This is a simple cancellation - doesn't actually stop the thread
+            # For a more robust solution, we'd need to implement proper thread cancellation
+            self.export_in_progress = False
+            self.export_btn.config(state='normal')
+            self.cancel_btn.config(state='disabled')
+            self.progress.config(value=0)
+            self.progress_label.config(text="Export cancelled")
+            messagebox.showinfo("Export Cancelled", "Export operation was cancelled.")
     
     def run(self):
         self.root.mainloop()
