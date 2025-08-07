@@ -1,0 +1,33 @@
+{
+  "section_mappings": {
+    "vers": "Verse",
+    "verse": "Verse",
+    "refräng": "Chorus",
+    "chorus": "Chorus",
+    "brygga": "Bridge", 
+    "bridge": "Bridge",
+    "förrefräng": "Pre-Chorus",
+    "pre-chorus": "Pre-Chorus",
+    "prechorus": "Pre-Chorus",
+    "intro": "Intro",
+    "outro": "Outro",
+    "slut": "Outro",
+    "tag": "Tag",
+    "ending": "Ending"
+  },
+  "number_mapping_rules": {
+    "preserve_numbers": true,
+    "start_from_one": true,
+    "format": "{section_name} {number}"
+  },
+  "gui_settings": {
+    "editable_via_gui": true,
+    "description": "Section name mappings from Swedish to English for ProPresenter export"
+  },
+  "notes": [
+    "This file maps Swedish section names to English equivalents",
+    "Numbers are preserved: 'vers 1' becomes 'Verse 1'",
+    "Case-insensitive matching is applied",
+    "These mappings will be editable from the GUI in future versions"
+  ]
+}

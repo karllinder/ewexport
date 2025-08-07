@@ -81,6 +81,20 @@ Technical Achievements:
 - Thread-safe progress callbacks
 - Graceful failure handling per song
 
+### 🔧 Bug Fixes: RV Slide Group Handling
+**Status**: Complete  
+**Branch**: main (merged from bugfix/rv-slide-group-handling)  
+**Completed**: 2025-01-07  
+**PR**: #3
+
+Bug Fixes Implemented:
+- ✅ RV Slide Group naming with section numbers (verse 1 → Verse 1)
+- ✅ Configurable Swedish to English section mappings
+- ✅ Extra line feed removal from slide content
+- ✅ Created config/section_mappings.json for translation settings
+- ✅ Updated SectionDetector for number preservation
+- ✅ Fixed ProPresenter export content trimming
+
 ### 📋 Sprint 5: Advanced Features (Planned)
 **Status**: Not Started  
 
@@ -90,6 +104,23 @@ Planned Features:
 - Settings persistence
 - Bible verse detection
 - Duplicate file handling
+- **Settings GUI for Section Mappings** (Priority: High)
+
+#### Settings GUI Requirements
+**Section Mappings Editor**:
+- GUI interface to edit config/section_mappings.json
+- Add/Remove/Modify Swedish to English translations
+- Preview section mapping results
+- Validate mapping entries
+- Export/Import mapping configurations
+- Support for multiple languages (future: German, French, etc.)
+
+**Implementation Notes**:
+- Build on existing config/section_mappings.json structure
+- Provide real-time preview of mapping changes
+- Include validation for duplicate mappings
+- Allow users to reset to default mappings
+- Future extension: Support additional languages beyond Swedish
 
 ## Testing Approach
 
