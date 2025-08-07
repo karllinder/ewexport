@@ -1,5 +1,6 @@
 """
-ProPresenter 6 XML export functionality
+ProPresenter 6 XML export functionality - Corrected format
+Based on propresenter-parser documentation
 """
 
 import xml.etree.ElementTree as ET
@@ -11,8 +12,8 @@ from pathlib import Path
 from typing import List, Dict, Optional, Any, Tuple
 from datetime import datetime
 
-class ProPresenterExporter:
-    """Handles export to ProPresenter 6 (.pro6) format"""
+class ProPresenter6Exporter:
+    """Handles export to ProPresenter 6 (.pro6) format with correct XML structure"""
     
     def __init__(self):
         self.slide_width = 1920
@@ -379,7 +380,7 @@ class ProPresenterExporter:
         winfont_data.text = self.create_winfont_data()
         
         return element
-    
+        
     def ensure_proper_array_tags(self, element):
         """Ensure empty array elements have proper opening/closing tags by adding empty text"""
         for array_elem in element.iter('array'):
@@ -486,7 +487,7 @@ class ProPresenterExporter:
 
 def create_sample_pro6():
     """Create a sample .pro6 file for testing"""
-    exporter = ProPresenterExporter()
+    exporter = ProPresenter6Exporter()
     
     sample_song = {
         'title': 'Amazing Grace',

@@ -9,7 +9,7 @@ import os
 import threading
 from typing import List, Optional
 from src.database.easyworship import EasyWorshipDatabase
-from src.export.propresenter_v2 import ProPresenter6Exporter
+from src.export.propresenter import ProPresenter6Exporter
 
 class MainWindow:
     def __init__(self):

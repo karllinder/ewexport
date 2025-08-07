@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from src.export.propresenter_v2 import ProPresenter6Exporter
+from src.export.propresenter import ProPresenter6Exporter
 import unittest
 from typing import Dict, List, Any
 
