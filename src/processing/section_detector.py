@@ -8,6 +8,8 @@ from parsed text content. Section markers appear as plain text on their own line
 
 import re
 import logging
+import json
+from pathlib import Path
 from typing import List, Dict, Optional, Any
 
 logger = logging.getLogger(__name__)
@@ -19,31 +21,55 @@ class SectionDetector:
     
     Sections are identified by markers that appear on their own lines,
     such as 'verse', 'chorus', 'bridge', etc.
+    Uses configurable mappings for Swedish to English conversion.
     """
     
-    # Standard section markers found in EasyWorship songs
-    # These are already in English even in Swedish songs
-    SECTION_MARKERS = [
-        'verse', 'vers',  # verse (sometimes spelled 'vers' in Swedish context)
-        'chorus', 'refrain', 'refräng',  # chorus variations
-        'bridge', 'stick',  # bridge variations
-        'pre-chorus', 'prechorus', 'pre chorus',
-        'outro', 'ending', 'slut',  # ending variations
-        'tag', 'coda',
-        'intro', 'introduction',
-        'interlude', 'instrumental',
-        'vamp'
-    ]
-    
-    # Numbered section patterns (e.g., "verse 1", "chorus 2")
-    NUMBERED_PATTERN = re.compile(
-        r'^(verse|chorus|bridge|pre-chorus|outro|tag|intro)\s*(\d+)?$',
-        re.IGNORECASE
-    )
-    
-    def __init__(self):
-        """Initialize the section detector."""
+    def __init__(self, config_path: Optional[str] = None):
+        """Initialize the section detector with configurable mappings."""
         self.last_detection_info = None
+        self._load_section_mappings(config_path)
+        self._create_numbered_pattern()
+    
+    def _load_section_mappings(self, config_path: Optional[str] = None):
+        """Load section mappings from configuration file."""
+        if config_path is None:
+            # Default to config/section_mappings.json
+            config_path = Path(__file__).parent.parent.parent / "config" / "section_mappings.json"
+        
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                self.section_mappings = config.get('section_mappings', {})
+                self.number_rules = config.get('number_mapping_rules', {})
+            logger.debug(f"Loaded section mappings from {config_path}")
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            logger.warning(f"Could not load section mappings: {e}. Using defaults.")
+            # Fallback to hardcoded mappings
+            self.section_mappings = {
+                'vers': 'Verse', 'verse': 'Verse',
+                'refräng': 'Chorus', 'chorus': 'Chorus',
+                'brygga': 'Bridge', 'bridge': 'Bridge',
+                'förrefräng': 'Pre-Chorus', 'pre-chorus': 'Pre-Chorus',
+                'intro': 'Intro', 'outro': 'Outro', 'slut': 'Outro',
+                'tag': 'Tag', 'ending': 'Ending'
+            }
+            self.number_rules = {
+                'preserve_numbers': True,
+                'start_from_one': True,
+                'format': '{section_name} {number}'
+            }
+        
+        # Create list of all known section markers for pattern matching
+        self.section_markers = list(self.section_mappings.keys())
+    
+    def _create_numbered_pattern(self):
+        """Create regex pattern for numbered sections based on loaded mappings."""
+        # Get all base section types from mappings
+        base_sections = '|'.join(self.section_markers)
+        self.numbered_pattern = re.compile(
+            rf'^({base_sections})\s*(\d+)?$',
+            re.IGNORECASE
+        )
         
     def detect_sections(self, text: str) -> Dict[str, Any]:
         """
@@ -124,7 +150,7 @@ class SectionDetector:
             line: Single line of text to check
             
         Returns:
-            Normalized section type if marker found, None otherwise
+            Normalized section type with number if marker found, None otherwise
         """
         # Clean the line for comparison
         clean_line = line.strip().lower()
@@ -133,56 +159,58 @@ class SectionDetector:
             return None
         
         # Check for exact matches first
-        for marker in self.SECTION_MARKERS:
-            if clean_line == marker:
+        for marker in self.section_markers:
+            if clean_line == marker.lower():
                 return self._normalize_section_type(marker)
         
         # Check for numbered sections (e.g., "verse 1", "chorus 2")
-        match = self.NUMBERED_PATTERN.match(clean_line)
+        match = self.numbered_pattern.match(clean_line)
         if match:
-            section_type = match.group(1)
-            return self._normalize_section_type(section_type)
+            section_type = match.group(1).lower()
+            section_number = match.group(2)
+            return self._normalize_section_type(section_type, section_number)
         
         # Check if line starts with a section marker followed by space/colon and number only
-        for marker in self.SECTION_MARKERS:
-            if clean_line.startswith(marker + ' '):
+        for marker in self.section_markers:
+            marker_lower = marker.lower()
+            if clean_line.startswith(marker_lower + ' '):
                 # Check if what follows is just a number or is empty (for "verse:", "chorus:" etc.)
-                remainder = clean_line[len(marker) + 1:].strip()
-                if remainder.isdigit() or not remainder:
+                remainder = clean_line[len(marker_lower) + 1:].strip()
+                if remainder.isdigit():
+                    return self._normalize_section_type(marker, remainder)
+                elif not remainder:
                     return self._normalize_section_type(marker)
-            elif clean_line.startswith(marker + ':'):
-                return self._normalize_section_type(marker)
+            elif clean_line.startswith(marker_lower + ':'):
+                remainder = clean_line[len(marker_lower) + 1:].strip()
+                if remainder.isdigit():
+                    return self._normalize_section_type(marker, remainder)
+                else:
+                    return self._normalize_section_type(marker)
         
         return None
     
-    def _normalize_section_type(self, section_type: str) -> str:
+    def _normalize_section_type(self, section_type: str, number: Optional[str] = None) -> str:
         """
-        Normalize section type to standard format.
+        Normalize section type to standard English format with number.
         
         Args:
-            section_type: Raw section type string
+            section_type: Raw section type string (e.g., 'vers', 'chorus')
+            number: Optional section number (e.g., '1', '2')
             
         Returns:
-            Normalized section type
+            Normalized section type with number (e.g., 'Verse 1', 'Chorus')
         """
-        section_type = section_type.lower().strip()
+        section_type_lower = section_type.lower().strip()
         
-        # Map variations to standard types
-        mapping = {
-            'vers': 'verse',
-            'refrain': 'chorus',
-            'refräng': 'chorus',
-            'stick': 'bridge',
-            'prechorus': 'pre-chorus',
-            'pre chorus': 'pre-chorus',
-            'ending': 'outro',
-            'slut': 'outro',
-            'coda': 'tag',
-            'introduction': 'intro',
-            'instrumental': 'interlude'
-        }
+        # Map to English using configuration
+        english_name = self.section_mappings.get(section_type_lower, section_type.title())
         
-        return mapping.get(section_type, section_type)
+        # Add number if present and rules allow it
+        if number and self.number_rules.get('preserve_numbers', True):
+            format_template = self.number_rules.get('format', '{section_name} {number}')
+            return format_template.format(section_name=english_name, number=number)
+        
+        return english_name
     
     def _save_section(self, sections: List[Dict], section_type: Optional[str], 
                      content_lines: List[str]):

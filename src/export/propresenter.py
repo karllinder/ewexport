@@ -73,7 +73,8 @@ class ProPresenter6Exporter:
                 rtf_lines.append(r'\par}')
             rtf_lines.append(r'{\fs149\f4 {\cf2\ltrch ' + line + r'}\li0\sa0\sb0\fi0\qc')
         
-        rtf_content = rtf_header + ''.join(rtf_lines) + r'\par}}}' 
+        # Close the RTF structure without adding extra paragraph break
+        rtf_content = rtf_header + ''.join(rtf_lines) + r'}}}' 
         
         # Encode to base64
         return base64.b64encode(rtf_content.encode('utf-8')).decode('ascii')
@@ -140,6 +141,12 @@ class ProPresenter6Exporter:
     
     def format_section_name(self, section_type: str) -> str:
         """Format section name for ProPresenter display"""
+        # Section detector now returns properly formatted names like "Verse 1", "Chorus", etc.
+        # If it already contains a space and number, use as-is
+        if ' ' in section_type and section_type.split()[-1].isdigit():
+            return section_type
+        
+        # Otherwise, apply legacy mapping for backwards compatibility
         section_map = {
             'verse': 'Verse',
             'chorus': 'Chorus', 
@@ -153,12 +160,7 @@ class ProPresenter6Exporter:
             'interlude': 'Interlude'
         }
         
-        formatted = section_map.get(section_type.lower(), section_type.title())
-        
-        # Add numbering if needed (e.g., "Verse 1", "Verse 2")
-        # This would need to track verse counts, etc.
-        
-        return formatted
+        return section_map.get(section_type.lower(), section_type.title())
     
     def split_content_into_slides(self, content: str) -> List[str]:
         """Split content into individual slides"""
@@ -360,19 +362,20 @@ class ProPresenter6Exporter:
         # Plain text (base64 encoded)
         plain_text = ET.SubElement(element, 'NSString')
         plain_text.set('rvXMLIvarName', 'PlainText')
-        # Convert Windows line endings to Unix for consistency
-        clean_content = content.replace('\r\n', '\n').replace('\n', '\r\n')
+        # Ensure content is properly trimmed and convert line endings
+        trimmed_content = content.strip()
+        clean_content = trimmed_content.replace('\r\n', '\n').replace('\n', '\r\n')
         plain_text.text = self.encode_base64(clean_content)
         
         # RTF data (base64 encoded)
         rtf_data = ET.SubElement(element, 'NSString')
         rtf_data.set('rvXMLIvarName', 'RTFData')
-        rtf_data.text = self.create_rtf_data(content)
+        rtf_data.text = self.create_rtf_data(trimmed_content)
         
         # WinFlow data (base64 encoded)
         winflow_data = ET.SubElement(element, 'NSString')
         winflow_data.set('rvXMLIvarName', 'WinFlowData')
-        winflow_data.text = self.create_winflow_data(content)
+        winflow_data.text = self.create_winflow_data(trimmed_content)
         
         # WinFont data (base64 encoded)
         winfont_data = ET.SubElement(element, 'NSString')
