@@ -4,7 +4,7 @@ A Windows desktop application that converts songs from EasyWorship 6.1 database 
 
 ## 🎉 Current Version: v0.1.1
 
-**Status**: ✅ **Working** - The converter successfully exports songs from EasyWorship to ProPresenter 6 format.
+**Status**: ✅ **Production Ready** - The converter successfully exports songs from EasyWorship to ProPresenter 6 format with advanced features.
 
 ## Features
 
@@ -13,49 +13,60 @@ A Windows desktop application that converts songs from EasyWorship 6.1 database 
 - ✅ Export to ProPresenter 6 XML format (.pro6)
 - ✅ Full Swedish character support (å, ä, ö)
 - ✅ Automatic section detection (Verse, Chorus, Bridge, etc.)
-- ✅ RTF text parsing and formatting
+- ✅ Configurable Swedish to English section name mapping
+- ✅ RTF text parsing with Unicode support
 - ✅ Batch export multiple songs with progress tracking
 - ✅ CCLI metadata preservation
+- ✅ Multi-threaded export to maintain UI responsiveness
 
 ### User Interface
-- ✅ Simple and intuitive GUI with song list
+- ✅ Modern GUI with menu bar (File, Edit, Help)
 - ✅ Auto-detection of EasyWorship database path
+- ✅ Real-time search filtering across all song fields
+- ✅ Search history with last 10 searches
 - ✅ Song selection with checkboxes
 - ✅ Select All/None functionality
-- ✅ Real-time selection counter
-- ✅ Export progress bar with status updates
+- ✅ Real-time selection and result counters
+- ✅ Export progress bar with per-song status
 - ✅ Detailed export results dialog
+- ✅ Automatic selection clearing after export
 
-## Completed Sprints
+### Advanced Features
+- ✅ **Settings GUI for Section Mappings**
+  - Table view of all mappings
+  - Add, edit, delete mappings
+  - Real-time preview and testing
+  - Import/export configurations
+  - Reset to defaults option
+- ✅ **Search & Filter System**
+  - Live search as you type
+  - Search across title, author, copyright, CCLI
+  - Persistent search history
+  - Clear search button
+  - Result count display
 
-### Sprint 1: Research & Planning ✅
-- Database structure analysis
-- ProPresenter format research
-- Architecture design
+## Development Progress
 
-### Sprint 2: MVP GUI ✅
-- Basic Tkinter interface
-- Database connection
-- Song list display
+### ✅ Completed Features
+- **Sprint 1**: Research & Planning - Database structure analysis, format research
+- **Sprint 2**: MVP GUI - Basic interface, database connection, song display
+- **Sprint 3**: RTF Processing - Unicode handling, section detection, text cleaning
+- **Sprint 4**: ProPresenter Export - XML generation, batch export, progress tracking
+- **Sprint 5**: Search & Settings - Real-time filtering, section mapping GUI, menu system
 
-### Sprint 3: RTF Processing ✅
-- RTF to text conversion
-- Swedish character handling
-- Section detection
+### 🚀 Upcoming Features (Sprint 6)
+- Complete settings persistence (window state, paths, preferences)
+- Export options dialog (folder structure, CCLI options)
+- Duplicate file handling with user choices
+- Preview functionality before export
+- Edit text before export option
 
-### Sprint 4: ProPresenter Export ✅
-- Complete XML generation
-- Batch export functionality
-- Progress tracking
-- Error handling
-
-### Upcoming Features (Sprint 5)
-
-- Search and filter functionality
-- Preview converted text before export
-- Settings persistence
-- Duplicate file handling
-- Advanced export options
+### 🔮 Future Enhancements
+- Bible verse detection and special handling
+- Multi-language support (German, French, Spanish)
+- Export statistics and reporting
+- Advanced search with regex support
+- Batch operations by tags or date range
 
 ## Technology Stack
 
@@ -94,13 +105,33 @@ python src/main.py
 
 2. The application will auto-detect your EasyWorship database location, or you can browse to select it manually
 
-3. Select songs from the list using checkboxes or use Select All/None buttons
+3. Use the search bar to filter songs or browse the full list
 
-4. Choose an export location (default: Desktop/ProPresenter_Export)
+4. Select songs from the list using checkboxes or use Select All/None buttons
 
-5. Click "Export Selected Songs" to generate ProPresenter 6 files
+5. Configure section mappings via Edit → Section Mappings (optional)
+
+6. Choose an export location (default: Desktop/ProPresenter_Export)
+
+7. Click "Export Selected Songs" to generate ProPresenter 6 files
 
 The exported .pro6 files will be saved to your chosen directory and can be imported directly into ProPresenter 6.
+
+### Using Section Mappings
+
+Access the Section Mappings settings from the Edit menu to:
+- Customize how Swedish section names are translated to English
+- Add new language mappings
+- Import/export mapping configurations
+- Test translations with the preview feature
+
+### Search Features
+
+The search bar allows you to:
+- Filter songs by title, author, copyright, or CCLI number
+- View search history (last 10 searches)
+- See filtered results count
+- Clear search with one click
 
 ## Acknowledgments
 

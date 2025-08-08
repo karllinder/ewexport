@@ -95,33 +95,79 @@ Bug Fixes Implemented:
 - ✅ Updated SectionDetector for number preservation
 - ✅ Fixed ProPresenter export content trimming
 
-### 📋 Sprint 5: Advanced Features (Planned)
-**Status**: Not Started  
+### ✅ Sprint 5: Search/Filter & Settings GUI
+**Status**: Complete  
+**Branch**: main (merged from sprint-5-search-filter)  
+**Completed**: 2025-01-08  
+**PR**: #4
 
-Planned Features:
-- Search and filtering
-- Settings GUI for Section Mappings
-- Export options dialog
-- Settings persistence
-- Bible verse detection
-- Duplicate file handling
-- **Settings GUI for Section Mappings** (Priority: High)
+Implemented Features:
+- ✅ Real-time search filtering across title, author, copyright, CCLI fields
+- ✅ Search history with last 10 searches (persistent storage)
+- ✅ Result count display ("Showing X of Y songs")
+- ✅ Clear search button for quick reset
+- ✅ Comprehensive Settings GUI for section mappings
+- ✅ Table/grid view for managing mappings
+- ✅ Add/Edit/Delete mapping operations
+- ✅ Real-time preview with test input
+- ✅ Import/Export mapping configurations
+- ✅ Reset to defaults functionality
+- ✅ Menu bar integration (File, Edit, Help menus)
+- ✅ About dialog
+- ✅ Automatic selection clearing after export
 
-#### Settings GUI Requirements
-**Section Mappings Editor**:
-- GUI interface to edit config/section_mappings.json
-- Add/Remove/Modify Swedish to English translations
-- Preview section mapping results
-- Validate mapping entries
-- Export/Import mapping configurations
-- Support for multiple languages (future: German, French, etc.)
+Technical Achievements:
+- Search history persistence in ~/.ewexport/search_history.json
+- Modal settings dialog with tabbed interface
+- Duplicate mapping validation
+- Case-insensitive mapping with number preservation
+- Double-click editing in mappings table
+- Unsaved changes warning dialog
 
-**Implementation Notes**:
-- Build on existing config/section_mappings.json structure
-- Provide real-time preview of mapping changes
-- Include validation for duplicate mappings
-- Allow users to reset to default mappings
-- Future extension: Support additional languages beyond Swedish
+Partial Settings Persistence Implemented:
+- ✅ Search history (last 10 searches)
+- ✅ Section mappings configuration
+- ⏳ Last EasyWorship database path (not yet)
+- ⏳ Last export directory (not yet)
+- ⏳ Window size/position (not yet)
+- ⏳ Column widths (not yet)
+
+### 📋 Sprint 6: Settings Persistence & Export Options
+**Status**: Planning  
+
+Priority Features:
+1. **Complete Settings Persistence**:
+   - Last EasyWorship database path
+   - Last export directory
+   - Window size and position
+   - Column widths in song list
+   - Export preferences (folder structure, CCLI info options)
+
+2. **Export Options Dialog**:
+   - Output directory selection with browse
+   - Folder structure options (single folder vs folder per song)
+   - Include CCLI info in filename toggle
+   - Text formatting preferences
+   - Create subfolder by date option
+
+3. **Duplicate File Handling**:
+   - Detect existing files before export
+   - Dialog with options: Skip/Overwrite/Rename/Apply to All
+   - Auto-rename pattern (song_1.pro6, song_2.pro6)
+   - Backup existing files option
+
+4. **Preview Functionality**:
+   - Preview converted text before export
+   - Show detected sections with labels
+   - Display section mapping results
+   - Edit text before export option
+
+Future Sprint 7 Features:
+- Bible verse detection and special handling
+- Multi-language section mappings (German, French, Spanish)
+- Export statistics and reporting
+- Batch operations (export by tag, date range)
+- Advanced search filters (regex, date modified)
 
 ## Testing Approach
 
