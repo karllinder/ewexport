@@ -24,6 +24,7 @@ class EasyWorshipDatabase:
         self.db_path = Path(db_path)
         self.songs_db = self.db_path / "Songs.db"
         self.words_db = self.db_path / "SongWords.db"
+        self.section_detector = None  # Will be initialized on first use
         
     def validate_database(self) -> bool:
         """Check if database files exist and are valid"""
@@ -87,6 +88,12 @@ class EasyWorshipDatabase:
         conn.close()
         
         return result[0] if result else None
+    
+    def reload_section_mappings(self):
+        """Reload section mappings after they've been changed in settings"""
+        # Force section detector to reload on next use
+        self.section_detector = None
+        logger.info("Section mappings will be reloaded on next use")
     
     def get_song_count(self) -> int:
         """Get total number of songs in database"""

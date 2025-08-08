@@ -100,6 +100,7 @@ Bug Fixes Implemented:
 
 Planned Features:
 - Search and filtering
+- Settings GUI for Section Mappings
 - Export options dialog
 - Settings persistence
 - Bible verse detection
