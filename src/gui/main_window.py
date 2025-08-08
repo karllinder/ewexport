@@ -12,6 +12,7 @@ from typing import List, Optional, Dict, Any
 from collections import deque
 from src.database.easyworship import EasyWorshipDatabase
 from src.export.propresenter import ProPresenter6Exporter
+from src.gui.settings_window import SettingsWindow
 
 class MainWindow:
     def __init__(self):
@@ -43,6 +44,9 @@ class MainWindow:
         
     def setup_ui(self):
         """Build the main GUI interface"""
+        # Create menu bar
+        self.create_menu_bar()
+        
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
@@ -176,6 +180,59 @@ class MainWindow:
                                      command=self.cancel_export, state='disabled')
         self.cancel_btn.pack(side=tk.LEFT)
         
+    def create_menu_bar(self):
+        """Create the application menu bar"""
+        menubar = tk.Menu(self.root)
+        self.root.config(menu=menubar)
+        
+        # File menu
+        file_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="File", menu=file_menu)
+        file_menu.add_command(label="Load Database...", command=self.browse_database)
+        file_menu.add_command(label="Set Export Directory...", command=self.browse_output_path)
+        file_menu.add_separator()
+        file_menu.add_command(label="Exit", command=self.root.quit)
+        
+        # Edit menu
+        edit_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Edit", menu=edit_menu)
+        edit_menu.add_command(label="Select All", command=self.select_all)
+        edit_menu.add_command(label="Select None", command=self.select_none)
+        edit_menu.add_separator()
+        edit_menu.add_command(label="Section Mappings...", command=self.open_settings)
+        
+        # Help menu
+        help_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Help", menu=help_menu)
+        help_menu.add_command(label="About", command=self.show_about)
+    
+    def open_settings(self):
+        """Open the settings window for section mappings"""
+        settings = SettingsWindow(parent_window=self)
+        self.root.wait_window(settings.window)
+        
+        # Reload section mappings if they changed
+        if hasattr(self, 'db') and self.db:
+            self.db.reload_section_mappings()
+    
+    def reload_section_mappings(self):
+        """Reload section mappings after settings change"""
+        if hasattr(self, 'db') and self.db:
+            self.db.reload_section_mappings()
+    
+    def show_about(self):
+        """Show about dialog"""
+        about_text = """EasyWorship to ProPresenter Converter
+        
+Version: 1.0.0
+        
+Converts songs from EasyWorship 6.1 database format 
+to ProPresenter 6 format with Swedish language support.
+        
+© 2024 - Created with Python and Tkinter"""
+        
+        messagebox.showinfo("About", about_text)
+    
     def auto_detect_easyworship(self):
         """Try to auto-detect EasyWorship database path"""
         # Common EasyWorship installation paths
