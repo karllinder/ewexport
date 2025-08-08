@@ -398,6 +398,9 @@ class MainWindow:
             message = f"Successfully exported {success_count} song{'s' if success_count != 1 else ''}!\n\n"
             message += f"Files saved to: {self.output_path.get()}"
             messagebox.showinfo("Export Complete", message)
+            
+            # Clear selection after successful export
+            self.select_none()
         else:
             message = f"Export completed with some issues:\n\n"
             message += f"Successfully exported: {success_count} songs\n"
@@ -411,6 +414,9 @@ class MainWindow:
                     message += f"... and {len(failed) - 5} more errors"
             
             messagebox.showwarning("Export Completed with Errors", message)
+            
+            # Clear selection even if some exports failed
+            self.select_none()
         
         self.progress_label.config(text="Ready to export")
     
