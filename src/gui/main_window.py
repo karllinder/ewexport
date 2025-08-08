@@ -7,7 +7,9 @@ from tkinter import ttk, filedialog, messagebox
 from pathlib import Path
 import os
 import threading
-from typing import List, Optional
+import json
+from typing import List, Optional, Dict, Any
+from collections import deque
 from src.database.easyworship import EasyWorshipDatabase
 from src.export.propresenter import ProPresenter6Exporter
 
@@ -19,15 +21,25 @@ class MainWindow:
         
         self.db_path = tk.StringVar()
         self.output_path = tk.StringVar()
+        self.search_var = tk.StringVar()
         self.selected_songs = set()
         self.songs_data = []
+        self.filtered_songs = []  # Songs currently shown after filtering
+        self.all_songs = []  # All songs from database
+        self.search_history = deque(maxlen=10)  # Last 10 searches
         self.db = None
         self.exporter = ProPresenter6Exporter()
         self.export_in_progress = False
         
+        # Load search history from settings
+        self.load_search_history()
+        
         self.setup_ui()
         self.auto_detect_easyworship()
         self.set_default_output_path()
+        
+        # Bind search variable to update function
+        self.search_var.trace('w', self.on_search_changed)
         
     def setup_ui(self):
         """Build the main GUI interface"""
@@ -62,11 +74,30 @@ class MainWindow:
         list_frame = ttk.LabelFrame(main_frame, text="Songs", padding="10")
         list_frame.grid(row=1, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
         list_frame.columnconfigure(0, weight=1)
-        list_frame.rowconfigure(1, weight=1)
+        list_frame.rowconfigure(2, weight=1)  # Changed to row 2 for tree
+        
+        # Search frame
+        search_frame = ttk.Frame(list_frame)
+        search_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
+        search_frame.columnconfigure(1, weight=1)
+        
+        ttk.Label(search_frame, text="Search:").pack(side=tk.LEFT, padx=(0, 5))
+        
+        # Search combobox with history
+        self.search_combo = ttk.Combobox(search_frame, textvariable=self.search_var, width=30)
+        self.search_combo.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
+        self.search_combo.bind('<Return>', self.add_to_search_history)
+        
+        # Clear search button
+        ttk.Button(search_frame, text="Clear", command=self.clear_search).pack(side=tk.LEFT, padx=(0, 10))
+        
+        # Result count label
+        self.result_count_label = ttk.Label(search_frame, text="")
+        self.result_count_label.pack(side=tk.LEFT, padx=(10, 0))
         
         # Selection buttons
         button_frame = ttk.Frame(list_frame)
-        button_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
+        button_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
         
         ttk.Button(button_frame, text="Select All", command=self.select_all).pack(side=tk.LEFT, padx=(0, 5))
         ttk.Button(button_frame, text="Select None", command=self.select_none).pack(side=tk.LEFT, padx=(0, 5))
@@ -77,7 +108,7 @@ class MainWindow:
         # Create Treeview for song list
         columns = ('title', 'author', 'copyright', 'ccli')
         self.tree = ttk.Treeview(list_frame, columns=columns, show='tree headings', selectmode='extended')
-        self.tree.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.tree.grid(row=2, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))  # Changed to row 2
         
         # Configure columns
         self.tree.heading('#0', text='✓', anchor=tk.W)
@@ -97,11 +128,11 @@ class MainWindow:
         
         # Add scrollbars
         vsb = ttk.Scrollbar(list_frame, orient="vertical", command=self.tree.yview)
-        vsb.grid(row=1, column=1, sticky=(tk.N, tk.S))
+        vsb.grid(row=2, column=1, sticky=(tk.N, tk.S))  # Changed to row 2
         self.tree.configure(yscrollcommand=vsb.set)
         
         hsb = ttk.Scrollbar(list_frame, orient="horizontal", command=self.tree.xview)
-        hsb.grid(row=2, column=0, sticky=(tk.W, tk.E))
+        hsb.grid(row=3, column=0, sticky=(tk.W, tk.E))  # Changed to row 3
         self.tree.configure(xscrollcommand=hsb.set)
         
         # Bind click event for checkbox toggle
@@ -193,24 +224,21 @@ class MainWindow:
             self.selected_songs.clear()
             
             # Load songs
-            self.songs_data = self.db.get_all_songs()
-            song_count = len(self.songs_data)
+            self.all_songs = self.db.get_all_songs()
+            self.songs_data = self.all_songs.copy()
+            self.filtered_songs = self.all_songs.copy()
+            song_count = len(self.all_songs)
             
-            # Populate tree
-            for song in self.songs_data:
-                item_id = self.tree.insert('', 'end', 
-                                          text='☐',
-                                          values=(
-                                              song['title'],
-                                              song['author'] or '-',
-                                              song['copyright'] or '-',
-                                              song['reference_number'] or '-'
-                                          ),
-                                          tags=(song['rowid'],))
+            # Apply current search filter if any
+            if self.search_var.get():
+                self.apply_search_filter()
+            else:
+                self.display_songs(self.filtered_songs)
             
             self.status_label.config(text=f"Loaded {song_count} songs from database")
             self.export_btn.config(state='normal' if song_count > 0 else 'disabled')
             self.update_selected_count()
+            self.update_result_count()
             
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load database: {str(e)}")
@@ -312,7 +340,8 @@ class MainWindow:
             songs_to_export = []
             selected_song_ids = list(self.selected_songs)
             
-            for song_data in self.songs_data:
+            # Use all_songs instead of songs_data to ensure we export all selected songs
+            for song_data in self.all_songs:
                 if song_data['rowid'] in selected_song_ids:
                     # Get processed lyrics with sections
                     processed = self.db.get_song_with_processed_lyrics(song_data['rowid'])
@@ -407,5 +436,111 @@ class MainWindow:
             self.progress_label.config(text="Export cancelled")
             messagebox.showinfo("Export Cancelled", "Export operation was cancelled.")
     
+    def on_search_changed(self, *args):
+        """Handle search text changes for real-time filtering"""
+        self.apply_search_filter()
+    
+    def apply_search_filter(self):
+        """Apply search filter to song list"""
+        search_text = self.search_var.get().lower().strip()
+        
+        if not search_text:
+            # No search, show all songs
+            self.filtered_songs = self.all_songs.copy()
+        else:
+            # Filter songs based on search text
+            self.filtered_songs = []
+            for song in self.all_songs:
+                # Search in title, author, copyright, and CCLI number
+                if (search_text in (song['title'] or '').lower() or
+                    search_text in (song['author'] or '').lower() or
+                    search_text in (song['copyright'] or '').lower() or
+                    search_text in (song['reference_number'] or '').lower()):
+                    self.filtered_songs.append(song)
+        
+        # Update display
+        self.display_songs(self.filtered_songs)
+        self.update_result_count()
+    
+    def display_songs(self, songs: List[Dict[str, Any]]):
+        """Display the given list of songs in the tree view"""
+        # Remember which songs were selected
+        previously_selected = self.selected_songs.copy()
+        
+        # Clear existing items
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        
+        # Add filtered songs
+        for song in songs:
+            song_id = song['rowid']
+            is_selected = song_id in previously_selected
+            
+            item_id = self.tree.insert('', 'end', 
+                                      text='☑' if is_selected else '☐',
+                                      values=(
+                                          song['title'],
+                                          song['author'] or '-',
+                                          song['copyright'] or '-',
+                                          song['reference_number'] or '-'
+                                      ),
+                                      tags=(song_id,))
+    
+    def update_result_count(self):
+        """Update the result count label"""
+        total = len(self.all_songs)
+        shown = len(self.filtered_songs)
+        
+        if self.search_var.get():
+            self.result_count_label.config(text=f"Showing {shown} of {total} songs")
+        else:
+            self.result_count_label.config(text=f"Total: {total} songs")
+    
+    def clear_search(self):
+        """Clear the search field and show all songs"""
+        self.search_var.set('')
+        self.apply_search_filter()
+    
+    def add_to_search_history(self, event=None):
+        """Add current search to history when Enter is pressed"""
+        search_text = self.search_var.get().strip()
+        if search_text and search_text not in self.search_history:
+            self.search_history.append(search_text)
+            self.update_search_combo_values()
+            self.save_search_history()
+    
+    def update_search_combo_values(self):
+        """Update the combobox dropdown with search history"""
+        self.search_combo['values'] = list(self.search_history)
+    
+    def load_search_history(self):
+        """Load search history from settings file"""
+        settings_dir = Path.home() / '.ewexport'
+        settings_file = settings_dir / 'search_history.json'
+        
+        if settings_file.exists():
+            try:
+                with open(settings_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    history = data.get('search_history', [])
+                    for item in history[-10:]:  # Keep last 10
+                        self.search_history.append(item)
+            except Exception:
+                pass  # Ignore errors loading history
+    
+    def save_search_history(self):
+        """Save search history to settings file"""
+        settings_dir = Path.home() / '.ewexport'
+        settings_dir.mkdir(exist_ok=True)
+        settings_file = settings_dir / 'search_history.json'
+        
+        try:
+            with open(settings_file, 'w', encoding='utf-8') as f:
+                json.dump({'search_history': list(self.search_history)}, f, indent=2)
+        except Exception:
+            pass  # Ignore errors saving history
+    
     def run(self):
+        # Set initial search history dropdown values
+        self.update_search_combo_values()
         self.root.mainloop()
