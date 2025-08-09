@@ -140,4 +140,18 @@ The search bar allows you to:
 
 ## License
 
-*To be determined*
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+### MIT License Summary
+
+This software is provided free of charge with the following permissions:
+- ✅ Commercial use
+- ✅ Modification
+- ✅ Distribution
+- ✅ Private use
+
+The only requirements are:
+- Include the original copyright notice
+- Include the license text
+
+The software is provided "as is", without warranty of any kind.

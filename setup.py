@@ -19,6 +19,7 @@ setup(
     url="https://github.com/karllinder/ewexport",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
+    license="MIT",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
