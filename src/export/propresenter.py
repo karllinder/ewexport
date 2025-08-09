@@ -8,9 +8,13 @@ import xml.dom.minidom
 import uuid
 import re
 import base64
+import errno
+import logging
 from pathlib import Path
 from typing import List, Dict, Optional, Any, Tuple
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 class ProPresenter6Exporter:
     """Handles export to ProPresenter 6 (.pro6) format with correct XML structure"""
@@ -413,6 +417,22 @@ class ProPresenter6Exporter:
         """Export a single song to ProPresenter 6 format"""
         
         try:
+            # Validate song has content
+            title = song_data.get('title', 'Untitled')
+            
+            # Check if sections exist and have content
+            has_content = False
+            if sections:
+                for section in sections:
+                    if section.get('content', '').strip():
+                        has_content = True
+                        break
+            
+            if not has_content:
+                error_msg = f"Song '{title}' has no lyrics data and cannot be exported (empty or corrupt song data)"
+                logger.warning(error_msg)
+                return False, error_msg
+            
             # Create XML document
             root = self.create_pro6_document(song_data, sections)
             
@@ -420,7 +440,6 @@ class ProPresenter6Exporter:
             self.ensure_proper_array_tags(root)
             
             # Create filename
-            title = song_data.get('title', 'Untitled')
             clean_title = self.sanitize_filename(title)
             filename = f"{clean_title}.pro6"
             full_path = output_path / filename
@@ -451,8 +470,18 @@ class ProPresenter6Exporter:
             
             return True, str(full_path)
             
+        except OSError as e:
+            # Handle file system errors (errno 22 is invalid argument)
+            if e.errno == 22:
+                error_msg = f"Cannot create file for '{title}': Invalid filename or path (possible corrupt data)"
+            else:
+                error_msg = f"File system error for '{title}': {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            return False, error_msg
+            
         except Exception as e:
-            error_msg = f"Failed to export '{song_data.get('title', 'Unknown')}': {str(e)}"
+            error_msg = f"Failed to export '{title}': {str(e)}"
+            logger.error(error_msg, exc_info=True)
             return False, error_msg
     
     def export_songs_batch(self, songs_with_sections: List[Tuple[Dict[str, Any], List[Dict[str, str]]]], 
