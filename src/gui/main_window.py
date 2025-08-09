@@ -8,11 +8,14 @@ from pathlib import Path
 import os
 import threading
 import json
+import logging
 from typing import List, Optional, Dict, Any
 from collections import deque
 from src.database.easyworship import EasyWorshipDatabase
 from src.export.propresenter import ProPresenter6Exporter
 from src.gui.settings_window import SettingsWindow
+
+logger = logging.getLogger(__name__)
 
 class MainWindow:
     def __init__(self):
@@ -407,8 +410,9 @@ to ProPresenter 6 format with Swedish language support.
                         sections = processed['sections']
                         songs_to_export.append((song_data, sections))
                     else:
-                        # Handle songs without lyrics gracefully
-                        empty_sections = [{'type': 'verse', 'content': 'No lyrics available'}]
+                        # Songs without any parseable content - add with empty section
+                        # This will be caught by the exporter's validation
+                        empty_sections = []
                         songs_to_export.append((song_data, empty_sections))
             
             # Export songs

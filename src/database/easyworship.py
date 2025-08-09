@@ -161,7 +161,12 @@ class EasyWorshipDatabase:
         # Parse RTF content
         parsed_rtf = parse_rtf(rtf_content)
         if not parsed_rtf or not parsed_rtf.get('has_content'):
-            logger.warning(f"Failed to parse RTF content for song '{song_data['title']}'")
+            # Check if it's just empty content vs actual parsing failure
+            if parsed_rtf is None:
+                logger.warning(f"Could not parse RTF content for song '{song_data['title']}' (possible corrupt RTF data)")
+            else:
+                logger.debug(f"Song '{song_data['title']}' has empty lyrics content")
+            
             song_data.update({
                 'parsed_lyrics': None,
                 'sections': [],
