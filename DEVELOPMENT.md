@@ -135,26 +135,23 @@ Partial Settings Persistence Implemented:
 ### 📋 Sprint 6: Settings Persistence & Export Options
 **Status**: Planning  
 
-Priority Features:
 1. **Complete Settings Persistence**:
    - Last EasyWorship database path
    - Last export directory
    - Window size and position
    - Column widths in song list
    - Export preferences (folder structure, CCLI info options)
+   - Select output directory on first run and then save it, no hardcoded default path.
 
-2. **Export Options Dialog**:
+2. **Export Options**:
    - Output directory selection with browse
-   - Folder structure options (single folder vs folder per song)
-   - Include CCLI info in filename toggle
-   - Text formatting preferences
-   - Create subfolder by date option
+   - Text formatting preferences.
+   - Select output font in settings.
+   - Enable blank page with group name "Into" as first slide, and "Blank" as last. Options in settings.
 
 3. **Duplicate File Handling**:
    - Detect existing files before export
    - Dialog with options: Skip/Overwrite/Rename/Apply to All
-   - Auto-rename pattern (song_1.pro6, song_2.pro6)
-   - Backup existing files option
 
 4. **Preview Functionality**:
    - Preview converted text before export

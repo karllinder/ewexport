@@ -27,16 +27,23 @@ class ProPresenter6Exporter:
         
     def sanitize_filename(self, filename: str) -> str:
         """Sanitize filename for Windows file system"""
-        # Remove or replace invalid characters
+        # First, remove all control characters including newlines, tabs, carriage returns
+        # This handles \n, \r, \t and other control characters (ASCII 0-31 and 127)
+        filename = re.sub(r'[\x00-\x1f\x7f]', '', filename)
+        
+        # Remove or replace invalid Windows filename characters
         invalid_chars = r'[<>:"/\\|?*]'
         filename = re.sub(invalid_chars, '_', filename)
         
         # Remove leading/trailing spaces and dots
         filename = filename.strip(' .')
         
+        # Replace multiple consecutive spaces with single space
+        filename = re.sub(r'\s+', ' ', filename)
+        
         # Limit length to reasonable size
         if len(filename) > 200:
-            filename = filename[:200]
+            filename = filename[:200].strip()
         
         # Ensure filename is not empty
         if not filename:
@@ -473,10 +480,12 @@ class ProPresenter6Exporter:
         except OSError as e:
             # Handle file system errors (errno 22 is invalid argument)
             if e.errno == 22:
-                error_msg = f"Cannot create file for '{title}': Invalid filename or path (possible corrupt data)"
+                # Show the problematic filename in the error for debugging
+                error_msg = f"Cannot export '{title}': Song title contains invalid characters (newlines, control characters, or special symbols)"
+                logger.error(f"{error_msg}. Attempted filename: {full_path}", exc_info=True)
             else:
                 error_msg = f"File system error for '{title}': {str(e)}"
-            logger.error(error_msg, exc_info=True)
+                logger.error(error_msg, exc_info=True)
             return False, error_msg
             
         except Exception as e:
