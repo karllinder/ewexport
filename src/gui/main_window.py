@@ -228,11 +228,19 @@ class MainWindow:
         about_text = """EasyWorship to ProPresenter Converter
         
 Version: 1.0.0
+Released: January 2025
         
 Converts songs from EasyWorship 6.1 database format 
 to ProPresenter 6 format with Swedish language support.
+
+Features:
+• Real-time search and filtering
+• Configurable section mappings
+• Batch export with progress tracking
+• Full Swedish character support
         
-© 2024 - Created with Python and Tkinter"""
+© 2025 - Created with Python and Tkinter
+GitHub: https://github.com/karllinder/ewexport"""
         
         messagebox.showinfo("About", about_text)
     
