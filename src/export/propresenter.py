@@ -617,14 +617,33 @@ class ProPresenter6Exporter:
                              file_path: Path) -> Tuple[bool, str]:
         """Export a single song to a specific file path"""
         try:
+            # Validate song has content
+            title = song_data.get('title', 'Untitled')
+            
+            # Check if sections exist and have content
+            has_content = False
+            if sections:
+                for section in sections:
+                    if section.get('content', '').strip():
+                        has_content = True
+                        break
+            
+            if not has_content:
+                error_msg = f"Song '{title}' has no lyrics data and cannot be exported"
+                logger.warning(error_msg)
+                return False, error_msg
+            
             # Ensure output directory exists
             file_path.parent.mkdir(parents=True, exist_ok=True)
             
             # Create XML structure
-            presentation = self.create_presentation(song_data, sections)
+            root = self.create_pro6_document(song_data, sections)
+            
+            # Ensure empty arrays have proper tags
+            self.ensure_proper_array_tags(root)
             
             # Convert to string with proper formatting
-            xml_string = self.prettify_xml(presentation)
+            xml_string = self.prettify_xml(root)
             
             # Write to file
             with open(file_path, 'w', encoding='utf-8') as f:
