@@ -7,11 +7,13 @@ This patch release addresses critical bugs reported by users and improves the ov
 
 ## Bug Fixes
 
-### Issue #7: Export Failures for Specific Songs
+### Issue #7: Export Failures and Duplicate Handling
 - **Fixed:** Export failures for songs with IDs 2727, 2728, 2729
+- **Fixed:** ValueError when handling duplicate files during batch export
 - **Improvement:** Enhanced error handling to provide more descriptive error messages
 - **Improvement:** Better logging for debugging export issues
-- **Impact:** Songs that previously failed to export now work correctly
+- **Improvement:** Robust duplicate file detection using file path indexing
+- **Impact:** Songs that previously failed to export now work correctly, duplicate handling is reliable
 
 ### Issue #6: Database File Selection Dialog
 - **Fixed:** File dialog now displays .db files when selecting EasyWorship database
@@ -49,6 +51,12 @@ All fixes have been tested with:
 ## Contributors
 - Karl Linder (Project Owner)
 - Claude AI Assistant (Development Support)
+
+## Issues Resolved
+- Issue #6: Database file dialog improvements
+- Issue #7: Export failures and duplicate handling
+- Issue #8: Font size selection UX
+- Issue #9: Development coordination (meta-issue)
 
 ## Acknowledgments
 Thanks to all users who reported issues and provided feedback to help improve the application.
