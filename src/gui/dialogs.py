@@ -1,0 +1,485 @@
+"""
+Dialog windows for user interactions
+"""
+
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog
+from pathlib import Path
+from typing import Optional, List, Tuple
+import os
+
+class DuplicateFileDialog:
+    """Dialog for handling duplicate files during export"""
+    
+    ACTIONS = {
+        'skip': 'Skip this file',
+        'overwrite': 'Overwrite existing file',
+        'rename': 'Rename with number suffix',
+        'rename_custom': 'Choose custom name'
+    }
+    
+    def __init__(self, parent, file_path: Path, remaining_count: int = 0):
+        """
+        Initialize duplicate file dialog
+        
+        Args:
+            parent: Parent window
+            file_path: Path to the duplicate file
+            remaining_count: Number of remaining duplicates
+        """
+        self.result = None
+        self.apply_to_all = False
+        
+        # Create dialog
+        self.dialog = tk.Toplevel(parent)
+        self.dialog.title("Duplicate File Found")
+        self.dialog.geometry("500x300")
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+        
+        # Center on parent
+        parent.update_idletasks()
+        x = parent.winfo_x() + (parent.winfo_width() // 2) - 250
+        y = parent.winfo_y() + (parent.winfo_height() // 2) - 150
+        self.dialog.geometry(f"+{x}+{y}")
+        
+        # Build UI
+        self._build_ui(file_path, remaining_count)
+        
+        # Focus
+        self.dialog.focus_set()
+    
+    def _build_ui(self, file_path: Path, remaining_count: int):
+        """Build the dialog UI"""
+        main_frame = ttk.Frame(self.dialog, padding="20")
+        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        
+        self.dialog.columnconfigure(0, weight=1)
+        self.dialog.rowconfigure(0, weight=1)
+        main_frame.columnconfigure(0, weight=1)
+        
+        # Message
+        msg = f"The file already exists:\n\n{file_path.name}\n\nWhat would you like to do?"
+        ttk.Label(main_frame, text=msg, wraplength=450).grid(row=0, column=0, pady=(0, 20))
+        
+        # Action selection
+        self.action_var = tk.StringVar(value='skip')
+        
+        actions_frame = ttk.LabelFrame(main_frame, text="Choose Action", padding="10")
+        actions_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        
+        for action, label in self.ACTIONS.items():
+            ttk.Radiobutton(actions_frame, text=label, variable=self.action_var, 
+                          value=action).pack(anchor=tk.W, pady=2)
+        
+        # Apply to all checkbox (if there are more duplicates)
+        if remaining_count > 0:
+            self.apply_all_var = tk.BooleanVar(value=False)
+            msg = f"Apply this action to all {remaining_count + 1} duplicate files"
+            ttk.Checkbutton(main_frame, text=msg, 
+                          variable=self.apply_all_var).grid(row=2, column=0, pady=10)
+        
+        # Buttons
+        button_frame = ttk.Frame(main_frame)
+        button_frame.grid(row=3, column=0, pady=(10, 0))
+        
+        ttk.Button(button_frame, text="OK", command=self._ok_clicked, 
+                  width=10).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Cancel", command=self._cancel_clicked, 
+                  width=10).pack(side=tk.LEFT)
+        
+        # Bind Enter and Escape
+        self.dialog.bind('<Return>', lambda e: self._ok_clicked())
+        self.dialog.bind('<Escape>', lambda e: self._cancel_clicked())
+    
+    def _ok_clicked(self):
+        """Handle OK button click"""
+        action = self.action_var.get()
+        
+        if action == 'rename_custom':
+            # Show custom name dialog
+            custom_name = self._get_custom_name()
+            if custom_name:
+                self.result = ('rename_custom', custom_name)
+            else:
+                return  # User cancelled custom name
+        else:
+            self.result = (action, None)
+        
+        # Check if apply to all
+        if hasattr(self, 'apply_all_var'):
+            self.apply_to_all = self.apply_all_var.get()
+        
+        self.dialog.destroy()
+    
+    def _cancel_clicked(self):
+        """Handle Cancel button click"""
+        self.result = ('cancel', None)
+        self.dialog.destroy()
+    
+    def _get_custom_name(self) -> Optional[str]:
+        """Get custom filename from user"""
+        dialog = tk.Toplevel(self.dialog)
+        dialog.title("Enter Custom Name")
+        dialog.geometry("400x120")
+        dialog.transient(self.dialog)
+        dialog.grab_set()
+        
+        # Center on parent
+        self.dialog.update_idletasks()
+        x = self.dialog.winfo_x() + 50
+        y = self.dialog.winfo_y() + 50
+        dialog.geometry(f"+{x}+{y}")
+        
+        # Create form
+        frame = ttk.Frame(dialog, padding="20")
+        frame.pack(fill=tk.BOTH, expand=True)
+        
+        ttk.Label(frame, text="Enter new filename (without extension):").pack(anchor=tk.W)
+        
+        name_var = tk.StringVar()
+        entry = ttk.Entry(frame, textvariable=name_var, width=40)
+        entry.pack(fill=tk.X, pady=(5, 10))
+        entry.focus_set()
+        
+        result = {'name': None}
+        
+        def ok_clicked():
+            name = name_var.get().strip()
+            if name:
+                # Sanitize filename
+                invalid_chars = r'<>:"/\|?*'
+                for char in invalid_chars:
+                    name = name.replace(char, '_')
+                result['name'] = name
+                dialog.destroy()
+        
+        def cancel_clicked():
+            dialog.destroy()
+        
+        # Buttons
+        button_frame = ttk.Frame(frame)
+        button_frame.pack()
+        
+        ttk.Button(button_frame, text="OK", command=ok_clicked).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Cancel", command=cancel_clicked).pack(side=tk.LEFT)
+        
+        # Bindings
+        entry.bind('<Return>', lambda e: ok_clicked())
+        dialog.bind('<Escape>', lambda e: cancel_clicked())
+        
+        # Wait for dialog
+        dialog.wait_window()
+        
+        return result['name']
+
+
+class ExportOptionsDialog:
+    """Dialog for configuring export options"""
+    
+    def __init__(self, parent, config_manager):
+        """
+        Initialize export options dialog
+        
+        Args:
+            parent: Parent window
+            config_manager: Configuration manager instance
+        """
+        self.config = config_manager
+        self.result = None
+        
+        # Create dialog
+        self.dialog = tk.Toplevel(parent)
+        self.dialog.title("Export Options")
+        self.dialog.geometry("600x500")
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+        
+        # Center on parent
+        parent.update_idletasks()
+        x = parent.winfo_x() + (parent.winfo_width() // 2) - 300
+        y = parent.winfo_y() + (parent.winfo_height() // 2) - 250
+        self.dialog.geometry(f"+{x}+{y}")
+        
+        # Build UI
+        self._build_ui()
+        
+        # Load current settings
+        self._load_settings()
+        
+        # Focus
+        self.dialog.focus_set()
+    
+    def _build_ui(self):
+        """Build the dialog UI"""
+        # Create notebook for tabs
+        notebook = ttk.Notebook(self.dialog, padding="10")
+        notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # General tab
+        general_frame = ttk.Frame(notebook)
+        notebook.add(general_frame, text="General")
+        self._build_general_tab(general_frame)
+        
+        # Formatting tab
+        format_frame = ttk.Frame(notebook)
+        notebook.add(format_frame, text="Formatting")
+        self._build_format_tab(format_frame)
+        
+        # Slides tab
+        slides_frame = ttk.Frame(notebook)
+        notebook.add(slides_frame, text="Slides")
+        self._build_slides_tab(slides_frame)
+        
+        # Bottom buttons
+        button_frame = ttk.Frame(self.dialog)
+        button_frame.pack(side=tk.BOTTOM, pady=10)
+        
+        ttk.Button(button_frame, text="OK", command=self._ok_clicked, 
+                  width=10).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Cancel", command=self._cancel_clicked, 
+                  width=10).pack(side=tk.LEFT)
+        ttk.Button(button_frame, text="Apply", command=self._apply_clicked, 
+                  width=10).pack(side=tk.LEFT, padx=5)
+    
+    def _build_general_tab(self, parent):
+        """Build the general options tab"""
+        frame = ttk.Frame(parent, padding="20")
+        frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Output directory
+        dir_frame = ttk.LabelFrame(frame, text="Output Directory", padding="10")
+        dir_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        self.output_dir_var = tk.StringVar()
+        dir_entry = ttk.Entry(dir_frame, textvariable=self.output_dir_var, width=50)
+        dir_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        ttk.Button(dir_frame, text="Browse...", 
+                  command=self._browse_output_dir).pack(side=tk.LEFT, padx=(5, 0))
+        
+        # File naming
+        naming_frame = ttk.LabelFrame(frame, text="File Naming", padding="10")
+        naming_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        self.include_ccli_var = tk.BooleanVar()
+        ttk.Checkbutton(naming_frame, text="Include CCLI number in filename", 
+                       variable=self.include_ccli_var).pack(anchor=tk.W, pady=2)
+        
+        self.include_author_var = tk.BooleanVar()
+        ttk.Checkbutton(naming_frame, text="Include author in filename", 
+                       variable=self.include_author_var).pack(anchor=tk.W, pady=2)
+        
+        # Folder structure
+        folder_frame = ttk.LabelFrame(frame, text="Folder Structure", padding="10")
+        folder_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        self.create_subfolder_var = tk.BooleanVar()
+        ttk.Checkbutton(folder_frame, text="Create subfolder for export", 
+                       variable=self.create_subfolder_var).pack(anchor=tk.W, pady=2)
+        
+        ttk.Label(folder_frame, text="Subfolder name pattern:").pack(anchor=tk.W, pady=(5, 2))
+        self.subfolder_pattern_var = tk.StringVar()
+        ttk.Entry(folder_frame, textvariable=self.subfolder_pattern_var, 
+                 width=40).pack(anchor=tk.W)
+        ttk.Label(folder_frame, text="Use {date} for current date", 
+                 font=('TkDefaultFont', 8)).pack(anchor=tk.W)
+        
+        # Duplicate handling
+        dup_frame = ttk.LabelFrame(frame, text="Duplicate Files", padding="10")
+        dup_frame.pack(fill=tk.X)
+        
+        self.overwrite_var = tk.BooleanVar()
+        ttk.Checkbutton(dup_frame, text="Overwrite existing files without asking", 
+                       variable=self.overwrite_var).pack(anchor=tk.W, pady=2)
+    
+    def _build_format_tab(self, parent):
+        """Build the formatting options tab"""
+        frame = ttk.Frame(parent, padding="20")
+        frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Font settings
+        font_frame = ttk.LabelFrame(frame, text="Font Settings", padding="10")
+        font_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        # Font family
+        ttk.Label(font_frame, text="Font:").grid(row=0, column=0, sticky=tk.W, pady=2)
+        self.font_family_var = tk.StringVar()
+        font_combo = ttk.Combobox(font_frame, textvariable=self.font_family_var, 
+                                 values=['Arial', 'Helvetica', 'Times New Roman', 
+                                        'Calibri', 'Verdana', 'Tahoma'], 
+                                 width=20)
+        font_combo.grid(row=0, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+        
+        # Font size
+        ttk.Label(font_frame, text="Size:").grid(row=1, column=0, sticky=tk.W, pady=2)
+        self.font_size_var = tk.IntVar()
+        size_spin = ttk.Spinbox(font_frame, from_=12, to=120, 
+                               textvariable=self.font_size_var, width=10)
+        size_spin.grid(row=1, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+        
+        # Formatting options
+        format_opts_frame = ttk.LabelFrame(frame, text="Text Formatting", padding="10")
+        format_opts_frame.pack(fill=tk.X)
+        
+        self.preserve_formatting_var = tk.BooleanVar()
+        ttk.Checkbutton(format_opts_frame, text="Preserve original text formatting", 
+                       variable=self.preserve_formatting_var).pack(anchor=tk.W, pady=2)
+        
+        self.auto_break_lines_var = tk.BooleanVar()
+        ttk.Checkbutton(format_opts_frame, text="Automatically break long lines", 
+                       variable=self.auto_break_lines_var).pack(anchor=tk.W, pady=2)
+    
+    def _build_slides_tab(self, parent):
+        """Build the slides options tab"""
+        frame = ttk.Frame(parent, padding="20")
+        frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Intro slide
+        intro_frame = ttk.LabelFrame(frame, text="Intro Slide", padding="10")
+        intro_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        self.add_intro_var = tk.BooleanVar()
+        intro_check = ttk.Checkbutton(intro_frame, text="Add intro slide as first slide", 
+                                     variable=self.add_intro_var, 
+                                     command=self._toggle_intro_options)
+        intro_check.pack(anchor=tk.W, pady=2)
+        
+        ttk.Label(intro_frame, text="Intro slide text:").pack(anchor=tk.W, pady=(5, 2))
+        self.intro_text_var = tk.StringVar()
+        self.intro_text_entry = ttk.Entry(intro_frame, textvariable=self.intro_text_var, 
+                                         width=40, state='disabled')
+        self.intro_text_entry.pack(anchor=tk.W)
+        
+        ttk.Label(intro_frame, text="Group name:").pack(anchor=tk.W, pady=(5, 2))
+        self.intro_group_var = tk.StringVar()
+        self.intro_group_entry = ttk.Entry(intro_frame, textvariable=self.intro_group_var, 
+                                          width=20, state='disabled')
+        self.intro_group_entry.pack(anchor=tk.W)
+        
+        # Blank slide
+        blank_frame = ttk.LabelFrame(frame, text="Blank Slide", padding="10")
+        blank_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        self.add_blank_var = tk.BooleanVar()
+        blank_check = ttk.Checkbutton(blank_frame, text="Add blank slide as last slide", 
+                                     variable=self.add_blank_var, 
+                                     command=self._toggle_blank_options)
+        blank_check.pack(anchor=tk.W, pady=2)
+        
+        ttk.Label(blank_frame, text="Group name:").pack(anchor=tk.W, pady=(5, 2))
+        self.blank_group_var = tk.StringVar()
+        self.blank_group_entry = ttk.Entry(blank_frame, textvariable=self.blank_group_var, 
+                                          width=20, state='disabled')
+        self.blank_group_entry.pack(anchor=tk.W)
+        
+        # Slide settings
+        slide_frame = ttk.LabelFrame(frame, text="Slide Settings", padding="10")
+        slide_frame.pack(fill=tk.X)
+        
+        ttk.Label(slide_frame, text="Maximum lines per slide:").pack(anchor=tk.W, pady=2)
+        self.max_lines_var = tk.IntVar()
+        lines_spin = ttk.Spinbox(slide_frame, from_=1, to=10, 
+                                textvariable=self.max_lines_var, width=10)
+        lines_spin.pack(anchor=tk.W)
+    
+    def _toggle_intro_options(self):
+        """Enable/disable intro slide options"""
+        state = 'normal' if self.add_intro_var.get() else 'disabled'
+        self.intro_text_entry.config(state=state)
+        self.intro_group_entry.config(state=state)
+    
+    def _toggle_blank_options(self):
+        """Enable/disable blank slide options"""
+        state = 'normal' if self.add_blank_var.get() else 'disabled'
+        self.blank_group_entry.config(state=state)
+    
+    def _browse_output_dir(self):
+        """Browse for output directory"""
+        current = self.output_dir_var.get() or str(Path.home())
+        
+        directory = filedialog.askdirectory(
+            title="Select Output Directory",
+            initialdir=current
+        )
+        
+        if directory:
+            self.output_dir_var.set(directory)
+    
+    def _load_settings(self):
+        """Load current settings from config"""
+        # General
+        output_dir = self.config.get('export.output_directory')
+        if output_dir:
+            self.output_dir_var.set(output_dir)
+        
+        self.include_ccli_var.set(self.config.get('export.include_ccli_in_filename', False))
+        self.include_author_var.set(self.config.get('export.include_author_in_filename', False))
+        self.create_subfolder_var.set(self.config.get('export.create_subfolder', True))
+        self.subfolder_pattern_var.set(self.config.get('export.subfolder_name', 'ProPresenter_Export_{date}'))
+        self.overwrite_var.set(self.config.get('export.overwrite_existing', False))
+        
+        # Formatting
+        self.font_family_var.set(self.config.get('export.font.family', 'Arial'))
+        self.font_size_var.set(self.config.get('export.font.size', 48))
+        self.preserve_formatting_var.set(self.config.get('export.preserve_formatting', True))
+        self.auto_break_lines_var.set(self.config.get('export.slides.auto_break_long_lines', True))
+        
+        # Slides
+        self.add_intro_var.set(self.config.get('export.slides.add_intro_slide', False))
+        self.intro_text_var.set(self.config.get('export.slides.intro_slide_text', ''))
+        self.intro_group_var.set(self.config.get('export.slides.intro_slide_group', 'Intro'))
+        self.add_blank_var.set(self.config.get('export.slides.add_blank_slide', False))
+        self.blank_group_var.set(self.config.get('export.slides.blank_slide_group', 'Blank'))
+        self.max_lines_var.set(self.config.get('export.slides.max_lines_per_slide', 4))
+        
+        # Update UI states
+        self._toggle_intro_options()
+        self._toggle_blank_options()
+    
+    def _save_settings(self):
+        """Save settings to config"""
+        # General
+        output_dir = self.output_dir_var.get()
+        if output_dir:
+            self.config.set('export.output_directory', output_dir, save=False)
+        
+        self.config.set('export.include_ccli_in_filename', self.include_ccli_var.get(), save=False)
+        self.config.set('export.include_author_in_filename', self.include_author_var.get(), save=False)
+        self.config.set('export.create_subfolder', self.create_subfolder_var.get(), save=False)
+        self.config.set('export.subfolder_name', self.subfolder_pattern_var.get(), save=False)
+        self.config.set('export.overwrite_existing', self.overwrite_var.get(), save=False)
+        
+        # Formatting
+        self.config.set('export.font.family', self.font_family_var.get(), save=False)
+        self.config.set('export.font.size', self.font_size_var.get(), save=False)
+        self.config.set('export.preserve_formatting', self.preserve_formatting_var.get(), save=False)
+        self.config.set('export.slides.auto_break_long_lines', self.auto_break_lines_var.get(), save=False)
+        
+        # Slides
+        self.config.set('export.slides.add_intro_slide', self.add_intro_var.get(), save=False)
+        self.config.set('export.slides.intro_slide_text', self.intro_text_var.get(), save=False)
+        self.config.set('export.slides.intro_slide_group', self.intro_group_var.get(), save=False)
+        self.config.set('export.slides.add_blank_slide', self.add_blank_var.get(), save=False)
+        self.config.set('export.slides.blank_slide_group', self.blank_group_var.get(), save=False)
+        self.config.set('export.slides.max_lines_per_slide', self.max_lines_var.get(), save=False)
+        
+        # Save all settings
+        self.config.save_settings()
+    
+    def _ok_clicked(self):
+        """Handle OK button click"""
+        self._save_settings()
+        self.result = 'ok'
+        self.dialog.destroy()
+    
+    def _cancel_clicked(self):
+        """Handle Cancel button click"""
+        self.result = 'cancel'
+        self.dialog.destroy()
+    
+    def _apply_clicked(self):
+        """Handle Apply button click"""
+        self._save_settings()
+        messagebox.showinfo("Settings Applied", "Export settings have been saved.", 
+                          parent=self.dialog)

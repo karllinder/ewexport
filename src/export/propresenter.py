@@ -19,11 +19,13 @@ logger = logging.getLogger(__name__)
 class ProPresenter6Exporter:
     """Handles export to ProPresenter 6 (.pro6) format with correct XML structure"""
     
-    def __init__(self):
+    def __init__(self, config=None):
         self.slide_width = 1920
         self.slide_height = 1080
         self.default_font_size = 60
         self.text_padding = 20
+        self.config = config
+        self.duplicate_action = None  # For batch duplicate handling
         
     def sanitize_filename(self, filename: str) -> str:
         """Sanitize filename for Windows file system"""
@@ -494,12 +496,24 @@ class ProPresenter6Exporter:
             return False, error_msg
     
     def export_songs_batch(self, songs_with_sections: List[Tuple[Dict[str, Any], List[Dict[str, str]]]], 
-                          output_path: Path, progress_callback=None) -> Tuple[List[str], List[str]]:
-        """Export multiple songs with progress tracking"""
+                          output_path: Path, progress_callback=None, parent_window=None) -> Tuple[List[str], List[str]]:
+        """Export multiple songs with progress tracking and duplicate handling"""
         
         successful_exports = []
         failed_exports = []
         total_songs = len(songs_with_sections)
+        
+        # Check for duplicates first if config says not to overwrite
+        duplicates = []
+        if self.config and not self.config.get('export.overwrite_existing', False):
+            for song_data, _ in songs_with_sections:
+                filename = self._generate_filename(song_data)
+                file_path = output_path / filename
+                if file_path.exists():
+                    duplicates.append((song_data, file_path))
+        
+        # Reset duplicate action for new batch
+        self.duplicate_action = None
         
         for i, (song_data, sections) in enumerate(songs_with_sections):
             try:
@@ -507,8 +521,37 @@ class ProPresenter6Exporter:
                 if progress_callback:
                     progress_callback(i, total_songs, song_data.get('title', 'Unknown'))
                 
-                # Export song
-                success, result = self.export_song(song_data, sections, output_path)
+                # Check for duplicate file
+                filename = self._generate_filename(song_data)
+                file_path = output_path / filename
+                
+                if file_path.exists() and not (self.config and self.config.get('export.overwrite_existing', False)):
+                    # Handle duplicate
+                    action = self._handle_duplicate(file_path, len(duplicates) - duplicates.index((song_data, file_path)) - 1, parent_window)
+                    
+                    if action == 'skip':
+                        successful_exports.append(f"Skipped: {song_data.get('title', 'Unknown')}")
+                        continue
+                    elif action == 'cancel':
+                        failed_exports.append(f"Cancelled: {song_data.get('title', 'Unknown')}")
+                        break
+                    elif action.startswith('rename'):
+                        # Rename the file
+                        if action == 'rename':
+                            # Auto-rename with number
+                            base = file_path.stem
+                            ext = file_path.suffix
+                            counter = 1
+                            while file_path.exists():
+                                file_path = file_path.parent / f"{base}_{counter}{ext}"
+                                counter += 1
+                        else:
+                            # Custom rename
+                            custom_name = action.split(':', 1)[1] if ':' in action else action
+                            file_path = file_path.parent / f"{custom_name}.pro6"
+                
+                # Export song with potentially modified path
+                success, result = self._export_song_to_path(song_data, sections, file_path)
                 
                 if success:
                     successful_exports.append(result)
@@ -524,6 +567,75 @@ class ProPresenter6Exporter:
             progress_callback(total_songs, total_songs, "Export complete")
         
         return successful_exports, failed_exports
+    
+    def _generate_filename(self, song_data: Dict[str, Any]) -> str:
+        """Generate filename based on config settings"""
+        title = self.sanitize_filename(song_data.get('title', 'Untitled'))
+        
+        # Add CCLI number if configured
+        if self.config and self.config.get('export.include_ccli_in_filename', False):
+            ccli = song_data.get('reference_number', '').strip()
+            if ccli:
+                title = f"{title}_{ccli}"
+        
+        # Add author if configured
+        if self.config and self.config.get('export.include_author_in_filename', False):
+            author = song_data.get('author', '').strip()
+            if author:
+                author = self.sanitize_filename(author)
+                title = f"{title}_{author}"
+        
+        return f"{title}.pro6"
+    
+    def _handle_duplicate(self, file_path: Path, remaining: int, parent_window) -> str:
+        """Handle duplicate file, return action to take"""
+        # If we have a remembered action, use it
+        if self.duplicate_action:
+            return self.duplicate_action
+        
+        # Otherwise show dialog if we have a parent window
+        if parent_window:
+            from src.gui.dialogs import DuplicateFileDialog
+            dialog = DuplicateFileDialog(parent_window, file_path, remaining)
+            parent_window.wait_window(dialog.dialog)
+            
+            if dialog.result:
+                action, custom_name = dialog.result
+                
+                # Remember action if requested
+                if dialog.apply_to_all:
+                    self.duplicate_action = action
+                
+                if action == 'rename_custom' and custom_name:
+                    return f"rename:{custom_name}"
+                return action
+        
+        # Default to skip if no parent window
+        return 'skip'
+    
+    def _export_song_to_path(self, song_data: Dict[str, Any], sections: List[Dict[str, str]], 
+                             file_path: Path) -> Tuple[bool, str]:
+        """Export a single song to a specific file path"""
+        try:
+            # Ensure output directory exists
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Create XML structure
+            presentation = self.create_presentation(song_data, sections)
+            
+            # Convert to string with proper formatting
+            xml_string = self.prettify_xml(presentation)
+            
+            # Write to file
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(xml_string)
+            
+            return True, f"Successfully exported: {song_data.get('title', 'Unknown')}"
+            
+        except Exception as e:
+            error_msg = f"Failed to export '{song_data.get('title', 'Unknown')}': {str(e)}"
+            logger.error(error_msg)
+            return False, error_msg
 
 
 def create_sample_pro6():
