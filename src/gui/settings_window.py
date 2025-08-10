@@ -10,6 +10,8 @@ from typing import Dict, Any, Optional
 import shutil
 
 class SettingsWindow:
+    CURRENT_VERSION = "1.1.0"  # Version of the section mappings schema
+    
     def __init__(self, parent_window=None):
         self.parent = parent_window
         self.window = tk.Toplevel() if parent_window else tk.Tk()
@@ -25,6 +27,7 @@ class SettingsWindow:
         self.config_file = Path(__file__).parent.parent.parent / "config" / "section_mappings.json"
         self.mappings = {}
         self.original_mappings = {}
+        self.ensure_config_exists()
         self.load_mappings()
         
         # Track changes
@@ -429,23 +432,9 @@ class SettingsWindow:
                                   "Are you sure you want to continue?"):
             return
         
-        # Default mappings
-        self.mappings = {
-            "vers": "Verse",
-            "verse": "Verse",
-            "refräng": "Chorus",
-            "chorus": "Chorus",
-            "brygga": "Bridge",
-            "bridge": "Bridge",
-            "förrefräng": "Pre-Chorus",
-            "pre-chorus": "Pre-Chorus",
-            "prechorus": "Pre-Chorus",
-            "intro": "Intro",
-            "outro": "Outro",
-            "slut": "Outro",
-            "tag": "Tag",
-            "ending": "Ending"
-        }
+        # Get default mappings from default config
+        default_config = self.get_default_config()
+        self.mappings = default_config['section_mappings']
         
         self.refresh_mappings_tree()
         self.has_changes = True
@@ -453,17 +442,87 @@ class SettingsWindow:
         
         messagebox.showinfo("Reset Complete", "Mappings have been reset to defaults.")
     
+    def ensure_config_exists(self):
+        """Ensure config file exists with default values for new users"""
+        if not self.config_file.exists():
+            # Create default config for new users
+            self.config_file.parent.mkdir(parents=True, exist_ok=True)
+            default_config = self.get_default_config()
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(default_config, f, indent=2, ensure_ascii=False)
+    
+    def get_default_config(self):
+        """Get default configuration structure"""
+        return {
+            "version": self.CURRENT_VERSION,
+            "section_mappings": {
+                "vers": "Verse",
+                "verse": "Verse",
+                "refräng": "Chorus",
+                "chorus": "Chorus",
+                "brygga": "Bridge",
+                "bridge": "Bridge",
+                "förrefräng": "Pre-Chorus",
+                "pre-chorus": "Pre-Chorus",
+                "prechorus": "Pre-Chorus",
+                "intro": "Intro",
+                "outro": "Outro",
+                "slut": "Outro",
+                "tag": "Tag",
+                "ending": "Ending"
+            },
+            "number_mapping_rules": {
+                "preserve_numbers": True,
+                "start_from_one": True,
+                "format": "{section_name} {number}"
+            },
+            "gui_settings": {
+                "editable_via_gui": True,
+                "description": "Section name mappings from Swedish to English for ProPresenter export"
+            },
+            "notes": [
+                "This file maps Swedish section names to English equivalents",
+                "Numbers are preserved: 'vers 1' becomes 'Verse 1'",
+                "Case-insensitive matching is applied",
+                "These mappings can be edited from Edit -> Section Mappings in the GUI"
+            ]
+        }
+    
+    def migrate_config(self, data, from_version):
+        """Migrate config from older version to current version"""
+        # Version 1.0.0 -> 1.1.0: Add version field if missing
+        if not from_version or from_version < "1.1.0":
+            data["version"] = self.CURRENT_VERSION
+            # Ensure all default fields exist
+            if "notes" not in data:
+                data["notes"] = self.get_default_config()["notes"]
+        
+        # Future migrations would go here
+        # elif from_version < "1.2.0":
+        #     # Migrate from 1.1.0 to 1.2.0
+        
+        return data
+    
     def load_mappings(self):
-        """Load mappings from config file"""
+        """Load mappings from config file with version handling"""
         try:
             if self.config_file.exists():
                 with open(self.config_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
+                    
+                    # Check version and migrate if needed
+                    file_version = data.get('version', '1.0.0')
+                    if file_version != self.CURRENT_VERSION:
+                        data = self.migrate_config(data, file_version)
+                        # Save migrated config
+                        with open(self.config_file, 'w', encoding='utf-8') as fw:
+                            json.dump(data, fw, indent=2, ensure_ascii=False)
+                    
                     self.mappings = data.get('section_mappings', {})
                     # Convert keys to lowercase for consistency
                     self.mappings = {k.lower(): v for k, v in self.mappings.items()}
             else:
-                # Use defaults if file doesn't exist
+                # Use defaults if file doesn't exist (shouldn't happen now)
                 self.reset_to_defaults()
             
             # Store original for comparison
@@ -483,7 +542,8 @@ class SettingsWindow:
             else:
                 data = {}
             
-            # Update section mappings
+            # Update version and section mappings
+            data['version'] = self.CURRENT_VERSION
             data['section_mappings'] = self.mappings
             
             # Ensure other required fields exist
