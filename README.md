@@ -2,9 +2,9 @@
 
 A Windows desktop application that converts songs from EasyWorship 6.1 database format to ProPresenter 6 format with full support for Swedish and English text.
 
-## 🎉 Current Version: v1.0.0
+## 🎉 Current Version: v1.1.0
 
-The converter successfully exports songs from EasyWorship to ProPresenter 6 format with advanced features.
+The converter successfully exports songs from EasyWorship to ProPresenter 6 format with advanced formatting controls and customization options.
 
 ## Features
 
@@ -16,6 +16,10 @@ The converter successfully exports songs from EasyWorship to ProPresenter 6 form
 - ✅ Configurable Swedish to English section name mapping
 - ✅ RTF text parsing with Unicode support
 - ✅ Real-time search filtering across all song fields
+- ✅ Custom font selection from all Windows system fonts
+- ✅ Configurable slide formatting and line breaks
+- ✅ Duplicate file detection and handling
+- ✅ Complete settings persistence
 
 ### Using Section Mappings
 
@@ -24,6 +28,31 @@ Access the Section Mappings settings from the Edit menu to:
 - Add new language mappings
 - Import/export mapping configurations
 - Test translations with the preview feature
+
+### Export Options
+
+Access Export Options from the Edit menu to configure:
+- **Font Settings**: Choose from all available Windows fonts and set custom font size
+- **Line Breaking**: Control how lyrics are split across slides
+- **File Naming**: Include CCLI number or author in filenames
+- **Duplicate Handling**: Choose to skip, overwrite, or rename duplicates
+
+#### Line Breaking and Slide Formatting
+
+The "Automatically break long lines" setting controls how content is divided into slides:
+
+**How it works:**
+1. **Natural Slide Breaks**: Empty lines in the lyrics always create new slides
+2. **Maximum Lines Per Slide**: Set how many lines appear on each slide (default: 4)
+
+**When "Automatically break long lines" is ON:**
+- Slides with more lines than the maximum are automatically split
+- Example: An 8-line verse with max=4 creates 2 slides (4 lines each)
+
+**When "Automatically break long lines" is OFF:**
+- Natural slides are kept intact regardless of line count
+- Only empty lines create new slides
+- Example: An 8-line verse stays as 1 slide with all 8 lines
 
 ### Search Features
 
@@ -36,10 +65,17 @@ The search bar allows you to:
 
 ## Development Progress
 
-### 🚀 Upcoming Features (Sprint 6)
-- Complete settings persistence (window state, paths, preferences)
-- Duplicate file handling with user choices
+### 🚀 Latest Updates (v1.1.0)
+- ✅ Complete settings persistence (window state, paths, preferences)
+- ✅ Enhanced Export Options dialog with font and formatting controls
+- ✅ Duplicate file detection with user-friendly handling
+- ✅ Windows system font integration
+- ✅ Configurable line breaking and slide formatting
+- ✅ Improved first-run experience
+
+### 🔧 Upcoming Features
 - Preview functionality before export
+- Edit text before export option
 
 
 ### 🔮 Future Enhancements
@@ -79,7 +115,7 @@ pip install -r requirements.txt
 
 1. Run the application:
 ```bash
-python srun.py
+python run.py
 ```
 
 2. The application will auto-detect your EasyWorship database location, or you can browse to select it manually
