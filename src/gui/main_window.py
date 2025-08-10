@@ -14,6 +14,8 @@ from collections import deque
 from src.database.easyworship import EasyWorshipDatabase
 from src.export.propresenter import ProPresenter6Exporter
 from src.gui.settings_window import SettingsWindow
+from src.gui.dialogs import DuplicateFileDialog, ExportOptionsDialog
+from src.utils.config import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +23,12 @@ class MainWindow:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("EasyWorship to ProPresenter Converter")
-        self.root.geometry("900x700")
+        
+        # Initialize config manager
+        self.config = get_config()
+        
+        # Load and apply window geometry
+        self._apply_window_geometry()
         
         self.db_path = tk.StringVar()
         self.output_path = tk.StringVar()
@@ -32,18 +39,22 @@ class MainWindow:
         self.all_songs = []  # All songs from database
         self.search_history = deque(maxlen=10)  # Last 10 searches
         self.db = None
-        self.exporter = ProPresenter6Exporter()
+        self.exporter = ProPresenter6Exporter(config=self.config)
         self.export_in_progress = False
+        self.duplicate_action = None  # For remembering duplicate handling choice
         
         # Load search history from settings
         self.load_search_history()
         
         self.setup_ui()
         self.auto_detect_easyworship()
-        self.set_default_output_path()
+        self.load_saved_paths()
         
         # Bind search variable to update function
         self.search_var.trace('w', self.on_search_changed)
+        
+        # Save geometry on close
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         
     def setup_ui(self):
         """Build the main GUI interface"""
@@ -203,6 +214,7 @@ class MainWindow:
         edit_menu.add_command(label="Select None", command=self.select_none)
         edit_menu.add_separator()
         edit_menu.add_command(label="Section Mappings...", command=self.open_settings)
+        edit_menu.add_command(label="Export Options...", command=self.open_export_options)
         
         # Help menu
         help_menu = tk.Menu(menubar, tearoff=0)
@@ -222,6 +234,11 @@ class MainWindow:
         """Reload section mappings after settings change"""
         if hasattr(self, 'db') and self.db:
             self.db.reload_section_mappings()
+    
+    def open_export_options(self):
+        """Open the export options dialog"""
+        dialog = ExportOptionsDialog(self.root, self.config)
+        self.root.wait_window(dialog.dialog)
     
     def show_about(self):
         """Show about dialog"""
@@ -269,6 +286,9 @@ GitHub: https://github.com/karllinder/ewexport"""
         
         if folder:
             self.db_path.set(folder)
+            # Save to config
+            self.config.set('paths.last_easyworship_path', folder)
+            self.config.add_recent_database(folder)
             self.load_songs()
     
     def load_songs(self):
@@ -374,6 +394,8 @@ GitHub: https://github.com/karllinder/ewexport"""
         
         if folder:
             self.output_path.set(folder)
+            # Save to config
+            self.config.set_export_directory(Path(folder))
     
     def start_export(self):
         """Start the export process in a separate thread"""
@@ -428,7 +450,8 @@ GitHub: https://github.com/karllinder/ewexport"""
             successful, failed = self.exporter.export_songs_batch(
                 songs_to_export, 
                 output_dir, 
-                progress_callback=self.update_export_progress
+                progress_callback=self.update_export_progress,
+                parent_window=self.root
             )
             
             # Update UI in main thread
@@ -618,4 +641,116 @@ GitHub: https://github.com/karllinder/ewexport"""
     def run(self):
         # Set initial search history dropdown values
         self.update_search_combo_values()
+        
+        # Check first run
+        if self.config.is_first_run():
+            self._handle_first_run()
+        
         self.root.mainloop()
+    
+    def _apply_window_geometry(self):
+        """Apply saved window geometry"""
+        geometry_info = self.config.get_window_geometry('main')
+        if geometry_info:
+            geometry, position, maximized = geometry_info
+            if geometry:
+                self.root.geometry(geometry)
+            if position:
+                self.root.geometry(f"+{position}")
+            if maximized:
+                self.root.state('zoomed' if os.name == 'nt' else 'normal')
+        else:
+            # Default geometry
+            self.root.geometry("900x700")
+    
+    def _save_window_geometry(self):
+        """Save current window geometry"""
+        # Get current state
+        maximized = self.root.state() == 'zoomed'
+        
+        # Get geometry (restore first if maximized to get actual size)
+        if maximized:
+            self.root.state('normal')
+            self.root.update_idletasks()
+        
+        geometry = self.root.geometry()
+        # Parse geometry string (e.g., "900x700+100+50")
+        import re
+        match = re.match(r'(\d+x\d+)\+(\d+)\+(\d+)', geometry)
+        if match:
+            size = match.group(1)
+            position = f"{match.group(2)},{match.group(3)}"
+            self.config.save_window_geometry('main', size, position, maximized)
+        
+        # Restore maximized state if needed
+        if maximized:
+            self.root.state('zoomed')
+    
+    def on_closing(self):
+        """Handle window closing"""
+        # Save window geometry
+        self._save_window_geometry()
+        
+        # Save column widths if tree exists
+        if hasattr(self, 'tree'):
+            widths = {}
+            for col in ['title', 'author', 'copyright', 'ccli', 'tags']:
+                widths[col] = self.tree.column(col, 'width')
+            self.config.save_column_widths(widths)
+        
+        # Save search history
+        self.save_search_history()
+        
+        # Destroy window
+        self.root.destroy()
+    
+    def load_saved_paths(self):
+        """Load saved paths from config"""
+        # Load last database path
+        last_db = self.config.get('paths.last_easyworship_path')
+        if last_db and Path(last_db).exists():
+            self.db_path.set(last_db)
+        
+        # Load last export path or set default
+        last_export = self.config.get_export_directory()
+        if last_export and last_export.exists():
+            self.output_path.set(str(last_export))
+        else:
+            self.set_default_output_path()
+    
+    def set_default_output_path(self):
+        """Set default output path based on config or desktop"""
+        output_dir = self.config.get_export_directory()
+        if output_dir and output_dir.exists():
+            self.output_path.set(str(output_dir))
+        else:
+            # Default to Desktop/ProPresenter_Export
+            desktop = Path.home() / "Desktop"
+            if desktop.exists():
+                default_path = desktop / "ProPresenter_Export"
+                self.output_path.set(str(default_path))
+            else:
+                self.output_path.set(str(Path.home() / "ProPresenter_Export"))
+    
+    def _handle_first_run(self):
+        """Handle first run setup"""
+        # Ask user to select output directory
+        result = messagebox.showinfo(
+            "Welcome",
+            "Welcome to EasyWorship to ProPresenter Converter!\n\n"
+            "Please select your default export directory in the next dialog.",
+            parent=self.root
+        )
+        
+        # Browse for output directory
+        directory = filedialog.askdirectory(
+            title="Select Default Export Directory",
+            initialdir=str(Path.home() / "Desktop")
+        )
+        
+        if directory:
+            self.config.set_export_directory(Path(directory))
+            self.output_path.set(directory)
+        
+        # Mark first run complete
+        self.config.mark_first_run_complete()
