@@ -202,7 +202,6 @@ class ProPresenter6Exporter:
     def split_content_into_slides(self, content: str) -> List[str]:
         """Split content into individual slides based on max lines setting"""
         slides = []
-        lines = content.split('\n')
         
         # Get max lines per slide from config
         max_lines = 4  # Default
@@ -210,39 +209,45 @@ class ProPresenter6Exporter:
             if self.config.get('export.formatting_enabled', False):
                 max_lines = self.config.get('export.slides.max_lines_per_slide', 4)
         
-        # Check if we should auto-break long lines
+        # Check if we should auto-break long sections
         auto_break = True  # Default
         if self.config:
             if self.config.get('export.formatting_enabled', False):
                 auto_break = self.config.get('export.slides.auto_break_long_lines', True)
         
-        current_slide = []
-        current_line_count = 0
+        # First, split by empty lines (natural slide breaks)
+        natural_slides = []
+        lines = content.split('\n')
+        current_section = []
         
         for line in lines:
             line = line.strip()
             if not line:
-                # Empty line - potential slide break
-                if current_slide:
-                    slides.append('\n'.join(current_slide))
-                    current_slide = []
-                    current_line_count = 0
+                # Empty line marks a natural slide break
+                if current_section:
+                    natural_slides.append('\n'.join(current_section))
+                    current_section = []
             else:
-                # Check if adding this line would exceed max lines
-                if auto_break and current_line_count >= max_lines and current_slide:
-                    # Start a new slide
-                    slides.append('\n'.join(current_slide))
-                    current_slide = [line]
-                    current_line_count = 1
-                else:
-                    current_slide.append(line)
-                    current_line_count += 1
+                current_section.append(line)
         
-        # Add final slide if content remains
-        if current_slide:
-            slides.append('\n'.join(current_slide))
+        # Add final section if exists
+        if current_section:
+            natural_slides.append('\n'.join(current_section))
         
-        # If no natural breaks and auto-break disabled, treat as single slide
+        # Now process each natural slide
+        for natural_slide in natural_slides:
+            slide_lines = natural_slide.split('\n')
+            
+            if auto_break and len(slide_lines) > max_lines:
+                # Break this slide into multiple slides based on max_lines
+                for i in range(0, len(slide_lines), max_lines):
+                    chunk = slide_lines[i:i + max_lines]
+                    slides.append('\n'.join(chunk))
+            else:
+                # Keep as single slide (even if longer than max_lines when auto_break is off)
+                slides.append(natural_slide)
+        
+        # If no slides created, treat entire content as one slide
         if not slides and content.strip():
             slides = [content.strip()]
             
