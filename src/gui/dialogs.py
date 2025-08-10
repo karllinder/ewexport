@@ -191,14 +191,14 @@ class ExportOptionsDialog:
         # Create dialog
         self.dialog = tk.Toplevel(parent)
         self.dialog.title("Export Options")
-        self.dialog.geometry("600x500")
+        self.dialog.geometry("650x600")
         self.dialog.transient(parent)
         self.dialog.grab_set()
         
         # Center on parent
         parent.update_idletasks()
-        x = parent.winfo_x() + (parent.winfo_width() // 2) - 300
-        y = parent.winfo_y() + (parent.winfo_height() // 2) - 250
+        x = parent.winfo_x() + (parent.winfo_width() // 2) - 325
+        y = parent.winfo_y() + (parent.winfo_height() // 2) - 300
         self.dialog.geometry(f"+{x}+{y}")
         
         # Build UI
@@ -213,8 +213,8 @@ class ExportOptionsDialog:
     def _build_ui(self):
         """Build the dialog UI"""
         # Create notebook for tabs
-        notebook = ttk.Notebook(self.dialog, padding="10")
-        notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        notebook = ttk.Notebook(self.dialog, padding="5")
+        notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=(10, 5))
         
         # General tab
         general_frame = ttk.Frame(notebook)
