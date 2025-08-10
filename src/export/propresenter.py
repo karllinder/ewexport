@@ -68,6 +68,19 @@ class ProPresenter6Exporter:
         content = content.replace('{', '\\{')
         content = content.replace('}', '\\}')
         
+        # Get font settings from config
+        font_family = 'Arial'  # Default
+        font_size = 72  # Default
+        
+        if self.config:
+            # Check if formatting is enabled and font should be changed
+            if self.config.get('export.formatting_enabled', False) and self.config.get('export.change_font', False):
+                font_family = self.config.get('export.font.family', 'Arial')
+                font_size = self.config.get('export.font.size', 72)
+        
+        # Map font size to RTF size (RTF uses half-points, so multiply by 2)
+        rtf_font_size = font_size * 2
+        
         # Convert line breaks to RTF paragraphs  
         lines = content.split('\n')
         rtf_lines = []
@@ -75,16 +88,17 @@ class ProPresenter6Exporter:
         # Build RTF content with proper formatting
         rtf_header = (
             r'{\rtf1\prortf1\ansi\ansicpg1252\uc1\htmautsp\deff2'
-            r'{\fonttbl{\f0\fcharset0 Times New Roman;}{\f2\fcharset0 Georgia;}{\f3\fcharset0 Arial;}{\f4\fcharset0 Impact;}}'
+            r'{\fonttbl{\f0\fcharset0 Times New Roman;}{\f2\fcharset0 Georgia;}{\f3\fcharset0 ' + font_family + r';}{\f4\fcharset0 Impact;}}'
             r'{\colortbl;\red0\green0\blue0;\red255\green255\blue255;}'
             r'\loch\hich\dbch\pard\slleading0\plain\ltrpar\itap0'
-            r'{\lang1033\fs120\f3\cf1 \cf1\qc'
+            r'{\lang1033\fs' + str(rtf_font_size) + r'\f3\cf1 \cf1\qc'
         )
         
         for i, line in enumerate(lines):
             if i > 0:
                 rtf_lines.append(r'\par}')
-            rtf_lines.append(r'{\fs149\f4 {\cf2\ltrch ' + line + r'}\li0\sa0\sb0\fi0\qc')
+            # Use configured font size
+            rtf_lines.append(r'{\fs' + str(rtf_font_size) + r'\f3 {\cf2\ltrch ' + line + r'}\li0\sa0\sb0\fi0\qc')
         
         # Close the RTF structure without adding extra paragraph break
         rtf_content = rtf_header + ''.join(rtf_lines) + r'}}}' 
@@ -97,6 +111,16 @@ class ProPresenter6Exporter:
         lines = content.split('\n')
         paragraphs = []
         
+        # Get font settings from config
+        font_family = 'Arial'  # Default
+        font_size = 72  # Default
+        
+        if self.config:
+            # Check if formatting is enabled and font should be changed
+            if self.config.get('export.formatting_enabled', False) and self.config.get('export.change_font', False):
+                font_family = self.config.get('export.font.family', 'Arial')
+                font_size = self.config.get('export.font.size', 72)
+        
         for line in lines:
             # Escape XML special characters
             line = line.replace('&', '&amp;')
@@ -106,8 +130,8 @@ class ProPresenter6Exporter:
             line = line.replace("'", '&apos;')
             
             paragraph = (
-                f'<Paragraph Margin="0,0,0,0" TextAlignment="Center" FontFamily="Arial" FontSize="60">'
-                f'<Run FontFamily="Impact" FontStretch="Condensed" FontSize="75" Foreground="#FFFFFFFF" '
+                f'<Paragraph Margin="0,0,0,0" TextAlignment="Center" FontFamily="{font_family}" FontSize="{font_size}">'
+                f'<Run FontFamily="{font_family}" FontStretch="Normal" FontSize="{font_size}" Foreground="#FFFFFFFF" '
                 f'Block.TextAlignment="Center">{line}</Run></Paragraph>'
             )
             paragraphs.append(paragraph)
@@ -176,10 +200,24 @@ class ProPresenter6Exporter:
         return section_map.get(section_type.lower(), section_type.title())
     
     def split_content_into_slides(self, content: str) -> List[str]:
-        """Split content into individual slides"""
+        """Split content into individual slides based on max lines setting"""
         slides = []
         lines = content.split('\n')
+        
+        # Get max lines per slide from config
+        max_lines = 4  # Default
+        if self.config:
+            if self.config.get('export.formatting_enabled', False):
+                max_lines = self.config.get('export.slides.max_lines_per_slide', 4)
+        
+        # Check if we should auto-break long lines
+        auto_break = True  # Default
+        if self.config:
+            if self.config.get('export.formatting_enabled', False):
+                auto_break = self.config.get('export.slides.auto_break_long_lines', True)
+        
         current_slide = []
+        current_line_count = 0
         
         for line in lines:
             line = line.strip()
@@ -188,14 +226,23 @@ class ProPresenter6Exporter:
                 if current_slide:
                     slides.append('\n'.join(current_slide))
                     current_slide = []
+                    current_line_count = 0
             else:
-                current_slide.append(line)
+                # Check if adding this line would exceed max lines
+                if auto_break and current_line_count >= max_lines and current_slide:
+                    # Start a new slide
+                    slides.append('\n'.join(current_slide))
+                    current_slide = [line]
+                    current_line_count = 1
+                else:
+                    current_slide.append(line)
+                    current_line_count += 1
         
         # Add final slide if content remains
         if current_slide:
             slides.append('\n'.join(current_slide))
         
-        # If no natural breaks, treat as single slide
+        # If no natural breaks and auto-break disabled, treat as single slide
         if not slides and content.strip():
             slides = [content.strip()]
             
