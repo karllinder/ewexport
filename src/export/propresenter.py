@@ -643,11 +643,25 @@ class ProPresenter6Exporter:
             self.ensure_proper_array_tags(root)
             
             # Convert to string with proper formatting
-            xml_string = self.prettify_xml(root)
+            xml_str = ET.tostring(root, encoding='unicode')
+            
+            # Fix self-closing array tags before pretty printing
+            xml_str = self.fix_self_closing_tags(xml_str)
+            
+            # Pretty print using minidom
+            dom = xml.dom.minidom.parseString(xml_str)
+            pretty_xml = dom.toprettyxml(indent="  ", encoding='utf-8')
+            
+            # Decode from bytes to string for final processing
+            if isinstance(pretty_xml, bytes):
+                pretty_xml = pretty_xml.decode('utf-8')
+            
+            # Apply fix again after pretty printing (in case minidom creates new self-closing tags)
+            pretty_xml = self.fix_self_closing_tags(pretty_xml)
             
             # Write to file
             with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(xml_string)
+                f.write(pretty_xml)
             
             return True, f"Successfully exported: {song_data.get('title', 'Unknown')}"
             
