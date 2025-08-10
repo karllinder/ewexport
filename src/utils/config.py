@@ -73,7 +73,7 @@ class ConfigManager:
             },
             "export": {
                 "output_directory": None,  # User's selected output directory
-                "create_subfolder": True,
+                "create_subfolder": False,
                 "subfolder_name": "ProPresenter_Export_{date}",
                 "include_ccli_in_filename": False,
                 "include_author_in_filename": False,

@@ -463,7 +463,7 @@ class ExportOptionsDialog:
         
         self.include_ccli_var.set(self.config.get('export.include_ccli_in_filename', False))
         self.include_author_var.set(self.config.get('export.include_author_in_filename', False))
-        self.create_subfolder_var.set(self.config.get('export.create_subfolder', True))
+        self.create_subfolder_var.set(self.config.get('export.create_subfolder', False))
         self.subfolder_pattern_var.set(self.config.get('export.subfolder_name', 'ProPresenter_Export_{date}'))
         self.overwrite_var.set(self.config.get('export.overwrite_existing', False))
         
