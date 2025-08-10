@@ -653,10 +653,12 @@ GitHub: https://github.com/karllinder/ewexport"""
         geometry_info = self.config.get_window_geometry('main')
         if geometry_info:
             geometry, position, maximized = geometry_info
-            if geometry:
+            if geometry and position:
+                # Combine size and position in one call
+                x, y = position.split(',')
+                self.root.geometry(f"{geometry}+{x}+{y}")
+            elif geometry:
                 self.root.geometry(geometry)
-            if position:
-                self.root.geometry(f"+{position}")
             if maximized:
                 self.root.state('zoomed' if os.name == 'nt' else 'normal')
         else:
@@ -694,9 +696,13 @@ GitHub: https://github.com/karllinder/ewexport"""
         # Save column widths if tree exists
         if hasattr(self, 'tree'):
             widths = {}
-            for col in ['title', 'author', 'copyright', 'ccli', 'tags']:
-                widths[col] = self.tree.column(col, 'width')
-            self.config.save_column_widths(widths)
+            for col in ['title', 'author', 'copyright', 'ccli']:
+                try:
+                    widths[col] = self.tree.column(col, 'width')
+                except:
+                    pass  # Column may not exist
+            if widths:
+                self.config.save_column_widths(widths)
         
         # Save search history
         self.save_search_history()

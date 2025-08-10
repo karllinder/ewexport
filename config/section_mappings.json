@@ -1,4 +1,5 @@
 {
+  "version": "1.1.0",
   "section_mappings": {
     "vers": "Verse",
     "verse": "Verse",
@@ -28,6 +29,6 @@
     "This file maps Swedish section names to English equivalents",
     "Numbers are preserved: 'vers 1' becomes 'Verse 1'",
     "Case-insensitive matching is applied",
-    "These mappings will be editable from the GUI in future versions"
+    "These mappings can be edited from Edit -> Section Mappings in the GUI"
   ]
 }

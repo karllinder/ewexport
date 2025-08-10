@@ -68,6 +68,19 @@ class ProPresenter6Exporter:
         content = content.replace('{', '\\{')
         content = content.replace('}', '\\}')
         
+        # Get font settings from config
+        font_family = 'Arial'  # Default
+        font_size = 72  # Default
+        
+        if self.config:
+            # Check if formatting is enabled and font should be changed
+            if self.config.get('export.formatting_enabled', False) and self.config.get('export.change_font', False):
+                font_family = self.config.get('export.font.family', 'Arial')
+                font_size = self.config.get('export.font.size', 72)
+        
+        # Map font size to RTF size (RTF uses half-points, so multiply by 2)
+        rtf_font_size = font_size * 2
+        
         # Convert line breaks to RTF paragraphs  
         lines = content.split('\n')
         rtf_lines = []
@@ -75,16 +88,17 @@ class ProPresenter6Exporter:
         # Build RTF content with proper formatting
         rtf_header = (
             r'{\rtf1\prortf1\ansi\ansicpg1252\uc1\htmautsp\deff2'
-            r'{\fonttbl{\f0\fcharset0 Times New Roman;}{\f2\fcharset0 Georgia;}{\f3\fcharset0 Arial;}{\f4\fcharset0 Impact;}}'
+            r'{\fonttbl{\f0\fcharset0 Times New Roman;}{\f2\fcharset0 Georgia;}{\f3\fcharset0 ' + font_family + r';}{\f4\fcharset0 Impact;}}'
             r'{\colortbl;\red0\green0\blue0;\red255\green255\blue255;}'
             r'\loch\hich\dbch\pard\slleading0\plain\ltrpar\itap0'
-            r'{\lang1033\fs120\f3\cf1 \cf1\qc'
+            r'{\lang1033\fs' + str(rtf_font_size) + r'\f3\cf1 \cf1\qc'
         )
         
         for i, line in enumerate(lines):
             if i > 0:
                 rtf_lines.append(r'\par}')
-            rtf_lines.append(r'{\fs149\f4 {\cf2\ltrch ' + line + r'}\li0\sa0\sb0\fi0\qc')
+            # Use configured font size
+            rtf_lines.append(r'{\fs' + str(rtf_font_size) + r'\f3 {\cf2\ltrch ' + line + r'}\li0\sa0\sb0\fi0\qc')
         
         # Close the RTF structure without adding extra paragraph break
         rtf_content = rtf_header + ''.join(rtf_lines) + r'}}}' 
@@ -97,6 +111,16 @@ class ProPresenter6Exporter:
         lines = content.split('\n')
         paragraphs = []
         
+        # Get font settings from config
+        font_family = 'Arial'  # Default
+        font_size = 72  # Default
+        
+        if self.config:
+            # Check if formatting is enabled and font should be changed
+            if self.config.get('export.formatting_enabled', False) and self.config.get('export.change_font', False):
+                font_family = self.config.get('export.font.family', 'Arial')
+                font_size = self.config.get('export.font.size', 72)
+        
         for line in lines:
             # Escape XML special characters
             line = line.replace('&', '&amp;')
@@ -106,8 +130,8 @@ class ProPresenter6Exporter:
             line = line.replace("'", '&apos;')
             
             paragraph = (
-                f'<Paragraph Margin="0,0,0,0" TextAlignment="Center" FontFamily="Arial" FontSize="60">'
-                f'<Run FontFamily="Impact" FontStretch="Condensed" FontSize="75" Foreground="#FFFFFFFF" '
+                f'<Paragraph Margin="0,0,0,0" TextAlignment="Center" FontFamily="{font_family}" FontSize="{font_size}">'
+                f'<Run FontFamily="{font_family}" FontStretch="Normal" FontSize="{font_size}" Foreground="#FFFFFFFF" '
                 f'Block.TextAlignment="Center">{line}</Run></Paragraph>'
             )
             paragraphs.append(paragraph)
@@ -176,26 +200,54 @@ class ProPresenter6Exporter:
         return section_map.get(section_type.lower(), section_type.title())
     
     def split_content_into_slides(self, content: str) -> List[str]:
-        """Split content into individual slides"""
+        """Split content into individual slides based on max lines setting"""
         slides = []
+        
+        # Get max lines per slide from config
+        max_lines = 4  # Default
+        if self.config:
+            if self.config.get('export.formatting_enabled', False):
+                max_lines = self.config.get('export.slides.max_lines_per_slide', 4)
+        
+        # Check if we should auto-break long sections
+        auto_break = True  # Default
+        if self.config:
+            if self.config.get('export.formatting_enabled', False):
+                auto_break = self.config.get('export.slides.auto_break_long_lines', True)
+        
+        # First, split by empty lines (natural slide breaks)
+        natural_slides = []
         lines = content.split('\n')
-        current_slide = []
+        current_section = []
         
         for line in lines:
             line = line.strip()
             if not line:
-                # Empty line - potential slide break
-                if current_slide:
-                    slides.append('\n'.join(current_slide))
-                    current_slide = []
+                # Empty line marks a natural slide break
+                if current_section:
+                    natural_slides.append('\n'.join(current_section))
+                    current_section = []
             else:
-                current_slide.append(line)
+                current_section.append(line)
         
-        # Add final slide if content remains
-        if current_slide:
-            slides.append('\n'.join(current_slide))
+        # Add final section if exists
+        if current_section:
+            natural_slides.append('\n'.join(current_section))
         
-        # If no natural breaks, treat as single slide
+        # Now process each natural slide
+        for natural_slide in natural_slides:
+            slide_lines = natural_slide.split('\n')
+            
+            if auto_break and len(slide_lines) > max_lines:
+                # Break this slide into multiple slides based on max_lines
+                for i in range(0, len(slide_lines), max_lines):
+                    chunk = slide_lines[i:i + max_lines]
+                    slides.append('\n'.join(chunk))
+            else:
+                # Keep as single slide (even if longer than max_lines when auto_break is off)
+                slides.append(natural_slide)
+        
+        # If no slides created, treat entire content as one slide
         if not slides and content.strip():
             slides = [content.strip()]
             
@@ -617,18 +669,51 @@ class ProPresenter6Exporter:
                              file_path: Path) -> Tuple[bool, str]:
         """Export a single song to a specific file path"""
         try:
+            # Validate song has content
+            title = song_data.get('title', 'Untitled')
+            
+            # Check if sections exist and have content
+            has_content = False
+            if sections:
+                for section in sections:
+                    if section.get('content', '').strip():
+                        has_content = True
+                        break
+            
+            if not has_content:
+                error_msg = f"Song '{title}' has no lyrics data and cannot be exported"
+                logger.warning(error_msg)
+                return False, error_msg
+            
             # Ensure output directory exists
             file_path.parent.mkdir(parents=True, exist_ok=True)
             
             # Create XML structure
-            presentation = self.create_presentation(song_data, sections)
+            root = self.create_pro6_document(song_data, sections)
+            
+            # Ensure empty arrays have proper tags
+            self.ensure_proper_array_tags(root)
             
             # Convert to string with proper formatting
-            xml_string = self.prettify_xml(presentation)
+            xml_str = ET.tostring(root, encoding='unicode')
+            
+            # Fix self-closing array tags before pretty printing
+            xml_str = self.fix_self_closing_tags(xml_str)
+            
+            # Pretty print using minidom
+            dom = xml.dom.minidom.parseString(xml_str)
+            pretty_xml = dom.toprettyxml(indent="  ", encoding='utf-8')
+            
+            # Decode from bytes to string for final processing
+            if isinstance(pretty_xml, bytes):
+                pretty_xml = pretty_xml.decode('utf-8')
+            
+            # Apply fix again after pretty printing (in case minidom creates new self-closing tags)
+            pretty_xml = self.fix_self_closing_tags(pretty_xml)
             
             # Write to file
             with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(xml_string)
+                f.write(pretty_xml)
             
             return True, f"Successfully exported: {song_data.get('title', 'Unknown')}"
             
