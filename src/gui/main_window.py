@@ -694,9 +694,13 @@ GitHub: https://github.com/karllinder/ewexport"""
         # Save column widths if tree exists
         if hasattr(self, 'tree'):
             widths = {}
-            for col in ['title', 'author', 'copyright', 'ccli', 'tags']:
-                widths[col] = self.tree.column(col, 'width')
-            self.config.save_column_widths(widths)
+            for col in ['title', 'author', 'copyright', 'ccli']:
+                try:
+                    widths[col] = self.tree.column(col, 'width')
+                except:
+                    pass  # Column may not exist
+            if widths:
+                self.config.save_column_widths(widths)
         
         # Save search history
         self.save_search_history()

@@ -79,10 +79,11 @@ class ConfigManager:
                 "include_author_in_filename": False,
                 "overwrite_existing": False,
                 "export_format": "propresenter6",  # or "propresenter7" in future
-                "preserve_formatting": True,
+                "formatting_enabled": False,  # Master control for custom formatting
+                "change_font": False,  # Whether to override font
                 "font": {
                     "family": "Arial",
-                    "size": 48,
+                    "size": 72,
                     "color": "#FFFFFF"
                 },
                 "slides": {

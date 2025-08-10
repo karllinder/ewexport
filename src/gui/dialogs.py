@@ -298,37 +298,62 @@ class ExportOptionsDialog:
         frame = ttk.Frame(parent, padding="20")
         frame.pack(fill=tk.BOTH, expand=True)
         
+        # Master formatting control
+        master_frame = ttk.LabelFrame(frame, text="Formatting Control", padding="10")
+        master_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        self.formatting_enabled_var = tk.BooleanVar()
+        formatting_check = ttk.Checkbutton(master_frame, text="Enable custom formatting", 
+                                          variable=self.formatting_enabled_var,
+                                          command=self._toggle_formatting_options)
+        formatting_check.pack(anchor=tk.W, pady=2)
+        ttk.Label(master_frame, text="When disabled, uses default ProPresenter formatting",
+                 font=('TkDefaultFont', 8)).pack(anchor=tk.W, padx=(20, 0))
+        
         # Font settings
-        font_frame = ttk.LabelFrame(frame, text="Font Settings", padding="10")
-        font_frame.pack(fill=tk.X, pady=(0, 10))
+        self.font_frame = ttk.LabelFrame(frame, text="Font Settings", padding="10")
+        self.font_frame.pack(fill=tk.X, pady=(0, 10))
         
-        # Font family
-        ttk.Label(font_frame, text="Font:").grid(row=0, column=0, sticky=tk.W, pady=2)
+        # Font family with Windows fonts
+        ttk.Label(self.font_frame, text="Font:").grid(row=0, column=0, sticky=tk.W, pady=2)
         self.font_family_var = tk.StringVar()
-        font_combo = ttk.Combobox(font_frame, textvariable=self.font_family_var, 
-                                 values=['Arial', 'Helvetica', 'Times New Roman', 
-                                        'Calibri', 'Verdana', 'Tahoma'], 
-                                 width=20)
-        font_combo.grid(row=0, column=1, sticky=tk.W, padx=(5, 0), pady=2)
         
-        # Font size
-        ttk.Label(font_frame, text="Size:").grid(row=1, column=0, sticky=tk.W, pady=2)
+        # Get all available Windows fonts
+        available_fonts = self._get_available_fonts()
+        self.font_combo = ttk.Combobox(self.font_frame, textvariable=self.font_family_var, 
+                                       values=available_fonts, 
+                                       width=30)
+        self.font_combo.grid(row=0, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+        
+        # Font size with default of 72
+        ttk.Label(self.font_frame, text="Size:").grid(row=1, column=0, sticky=tk.W, pady=2)
         self.font_size_var = tk.IntVar()
-        size_spin = ttk.Spinbox(font_frame, from_=12, to=120, 
-                               textvariable=self.font_size_var, width=10)
-        size_spin.grid(row=1, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+        self.size_spin = ttk.Spinbox(self.font_frame, from_=12, to=120, 
+                                     textvariable=self.font_size_var, width=10)
+        self.size_spin.grid(row=1, column=1, sticky=tk.W, padx=(5, 0), pady=2)
         
-        # Formatting options
-        format_opts_frame = ttk.LabelFrame(frame, text="Text Formatting", padding="10")
-        format_opts_frame.pack(fill=tk.X)
+        # Change font checkbox
+        self.change_font_var = tk.BooleanVar()
+        self.change_font_check = ttk.Checkbutton(self.font_frame, 
+                                                 text="Override song font with selected font", 
+                                                 variable=self.change_font_var)
+        self.change_font_check.grid(row=2, column=0, columnspan=2, sticky=tk.W, pady=(5, 0))
         
-        self.preserve_formatting_var = tk.BooleanVar()
-        ttk.Checkbutton(format_opts_frame, text="Preserve original text formatting", 
-                       variable=self.preserve_formatting_var).pack(anchor=tk.W, pady=2)
+        # Text processing options
+        self.text_opts_frame = ttk.LabelFrame(frame, text="Text Processing", padding="10")
+        self.text_opts_frame.pack(fill=tk.X)
         
         self.auto_break_lines_var = tk.BooleanVar()
-        ttk.Checkbutton(format_opts_frame, text="Automatically break long lines", 
-                       variable=self.auto_break_lines_var).pack(anchor=tk.W, pady=2)
+        self.auto_break_check = ttk.Checkbutton(self.text_opts_frame, 
+                                               text="Automatically break long lines", 
+                                               variable=self.auto_break_lines_var)
+        self.auto_break_check.pack(anchor=tk.W, pady=2)
+        
+        ttk.Label(self.text_opts_frame, text="Maximum lines per slide:").pack(anchor=tk.W, pady=(5, 2))
+        self.max_lines_var = tk.IntVar()
+        self.max_lines_spin = ttk.Spinbox(self.text_opts_frame, from_=1, to=10, 
+                                         textvariable=self.max_lines_var, width=10)
+        self.max_lines_spin.pack(anchor=tk.W)
     
     def _build_slides_tab(self, parent):
         """Build the slides options tab"""
@@ -372,16 +397,36 @@ class ExportOptionsDialog:
         self.blank_group_entry = ttk.Entry(blank_frame, textvariable=self.blank_group_var, 
                                           width=20, state='disabled')
         self.blank_group_entry.pack(anchor=tk.W)
+    
+    def _get_available_fonts(self):
+        """Get list of available fonts on Windows"""
+        try:
+            import tkinter.font as tkfont
+            # Get all font families available in the system
+            fonts = list(tkfont.families())
+            # Filter out fonts that start with @ (vertical fonts in Windows)
+            fonts = [f for f in fonts if not f.startswith('@')]
+            # Sort alphabetically
+            fonts.sort()
+            return fonts
+        except Exception:
+            # Fallback to common fonts if can't get system fonts
+            return ['Arial', 'Helvetica', 'Times New Roman', 'Calibri', 
+                   'Verdana', 'Tahoma', 'Georgia', 'Impact', 'Comic Sans MS']
+    
+    def _toggle_formatting_options(self):
+        """Enable/disable formatting options based on master control"""
+        state = 'normal' if self.formatting_enabled_var.get() else 'disabled'
         
-        # Slide settings
-        slide_frame = ttk.LabelFrame(frame, text="Slide Settings", padding="10")
-        slide_frame.pack(fill=tk.X)
+        # Toggle font frame widgets
+        for child in self.font_frame.winfo_children():
+            if isinstance(child, (ttk.Entry, ttk.Combobox, ttk.Spinbox, ttk.Checkbutton)):
+                child.config(state=state)
         
-        ttk.Label(slide_frame, text="Maximum lines per slide:").pack(anchor=tk.W, pady=2)
-        self.max_lines_var = tk.IntVar()
-        lines_spin = ttk.Spinbox(slide_frame, from_=1, to=10, 
-                                textvariable=self.max_lines_var, width=10)
-        lines_spin.pack(anchor=tk.W)
+        # Toggle text options frame widgets
+        for child in self.text_opts_frame.winfo_children():
+            if isinstance(child, (ttk.Entry, ttk.Spinbox, ttk.Checkbutton)):
+                child.config(state=state)
     
     def _toggle_intro_options(self):
         """Enable/disable intro slide options"""
@@ -420,9 +465,10 @@ class ExportOptionsDialog:
         self.overwrite_var.set(self.config.get('export.overwrite_existing', False))
         
         # Formatting
+        self.formatting_enabled_var.set(self.config.get('export.formatting_enabled', False))
         self.font_family_var.set(self.config.get('export.font.family', 'Arial'))
-        self.font_size_var.set(self.config.get('export.font.size', 48))
-        self.preserve_formatting_var.set(self.config.get('export.preserve_formatting', True))
+        self.font_size_var.set(self.config.get('export.font.size', 72))
+        self.change_font_var.set(self.config.get('export.change_font', False))
         self.auto_break_lines_var.set(self.config.get('export.slides.auto_break_long_lines', True))
         
         # Slides
@@ -434,6 +480,7 @@ class ExportOptionsDialog:
         self.max_lines_var.set(self.config.get('export.slides.max_lines_per_slide', 4))
         
         # Update UI states
+        self._toggle_formatting_options()
         self._toggle_intro_options()
         self._toggle_blank_options()
     
@@ -451,9 +498,10 @@ class ExportOptionsDialog:
         self.config.set('export.overwrite_existing', self.overwrite_var.get(), save=False)
         
         # Formatting
+        self.config.set('export.formatting_enabled', self.formatting_enabled_var.get(), save=False)
         self.config.set('export.font.family', self.font_family_var.get(), save=False)
         self.config.set('export.font.size', self.font_size_var.get(), save=False)
-        self.config.set('export.preserve_formatting', self.preserve_formatting_var.get(), save=False)
+        self.config.set('export.change_font', self.change_font_var.get(), save=False)
         self.config.set('export.slides.auto_break_long_lines', self.auto_break_lines_var.get(), save=False)
         
         # Slides
