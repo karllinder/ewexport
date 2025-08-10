@@ -235,12 +235,15 @@ class ExportOptionsDialog:
         button_frame = ttk.Frame(self.dialog)
         button_frame.pack(side=tk.BOTTOM, pady=10)
         
-        ttk.Button(button_frame, text="OK", command=self._ok_clicked, 
+        ttk.Button(button_frame, text="Save", command=self._save_clicked, 
                   width=10).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Cancel", command=self._cancel_clicked, 
-                  width=10).pack(side=tk.LEFT)
         ttk.Button(button_frame, text="Apply", command=self._apply_clicked, 
                   width=10).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Cancel", command=self._cancel_clicked, 
+                  width=10).pack(side=tk.LEFT, padx=5)
+        
+        # Handle window close button
+        self.dialog.protocol("WM_DELETE_WINDOW", self._on_closing)
     
     def _build_general_tab(self, parent):
         """Build the general options tab"""
@@ -515,19 +518,39 @@ class ExportOptionsDialog:
         # Save all settings
         self.config.save_settings()
     
-    def _ok_clicked(self):
-        """Handle OK button click"""
+    def _save_clicked(self):
+        """Handle Save button click - save and close"""
         self._save_settings()
-        self.result = 'ok'
-        self.dialog.destroy()
-    
-    def _cancel_clicked(self):
-        """Handle Cancel button click"""
-        self.result = 'cancel'
+        self.result = 'saved'
+        messagebox.showinfo("Settings Saved", "Export settings have been saved successfully.", 
+                          parent=self.dialog)
         self.dialog.destroy()
     
     def _apply_clicked(self):
-        """Handle Apply button click"""
+        """Handle Apply button click - save without closing"""
         self._save_settings()
-        messagebox.showinfo("Settings Applied", "Export settings have been saved.", 
+        messagebox.showinfo("Settings Applied", "Export settings have been applied.", 
                           parent=self.dialog)
+    
+    def _cancel_clicked(self):
+        """Handle Cancel button click - close without saving"""
+        response = messagebox.askyesno("Confirm Cancel", 
+                                      "Are you sure you want to cancel?\nAny unsaved changes will be lost.", 
+                                      parent=self.dialog)
+        if response:
+            self.result = 'cancelled'
+            self.dialog.destroy()
+    
+    def _on_closing(self):
+        """Handle window close button"""
+        response = messagebox.askyesnocancel("Save Changes", 
+                                            "Do you want to save your changes before closing?", 
+                                            parent=self.dialog)
+        if response is True:  # Yes - save and close
+            self._save_settings()
+            self.result = 'saved'
+            self.dialog.destroy()
+        elif response is False:  # No - close without saving
+            self.result = 'cancelled'
+            self.dialog.destroy()
+        # If None (Cancel), do nothing - keep dialog open
