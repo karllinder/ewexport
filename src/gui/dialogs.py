@@ -328,12 +328,30 @@ class ExportOptionsDialog:
                                        width=30)
         self.font_combo.grid(row=0, column=1, sticky=tk.W, padx=(5, 0), pady=2)
         
-        # Font size with default of 72
+        # Font size with dropdown and custom entry (Issue #8 fix)
         ttk.Label(self.font_frame, text="Size:").grid(row=1, column=0, sticky=tk.W, pady=2)
-        self.font_size_var = tk.IntVar()
-        self.size_spin = ttk.Spinbox(self.font_frame, from_=12, to=120, 
-                                     textvariable=self.font_size_var, width=10)
-        self.size_spin.grid(row=1, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+        self.font_size_var = tk.StringVar()  # Changed to StringVar for combobox
+        
+        # Common font sizes for quick selection
+        common_sizes = ['12', '18', '24', '30', '36', '48', '60', '72', '84', '96', '120', '144', '168', '200']
+        self.size_combo = ttk.Combobox(self.font_frame, textvariable=self.font_size_var, 
+                                       values=common_sizes, width=8, state='normal')
+        self.size_combo.grid(row=1, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+        
+        # Add validation for custom entries (12-200 range)
+        def validate_font_size(event=None):
+            try:
+                size = int(self.font_size_var.get())
+                if size < 12:
+                    self.font_size_var.set('12')
+                elif size > 200:
+                    self.font_size_var.set('200')
+            except ValueError:
+                # If not a valid number, reset to default
+                self.font_size_var.set('72')
+        
+        self.size_combo.bind('<FocusOut>', validate_font_size)
+        self.size_combo.bind('<Return>', validate_font_size)
         
         # Change font checkbox
         self.change_font_var = tk.BooleanVar()
@@ -423,12 +441,12 @@ class ExportOptionsDialog:
         
         # Toggle font frame widgets
         for child in self.font_frame.winfo_children():
-            if isinstance(child, (ttk.Entry, ttk.Combobox, ttk.Spinbox, ttk.Checkbutton)):
+            if isinstance(child, (ttk.Entry, ttk.Combobox, ttk.Checkbutton)):
                 child.config(state=state)
         
         # Toggle text options frame widgets
         for child in self.text_opts_frame.winfo_children():
-            if isinstance(child, (ttk.Entry, ttk.Spinbox, ttk.Checkbutton)):
+            if isinstance(child, (ttk.Entry, ttk.Spinbox, ttk.Checkbutton, ttk.Combobox)):
                 child.config(state=state)
     
     def _toggle_intro_options(self):
@@ -470,7 +488,7 @@ class ExportOptionsDialog:
         # Formatting
         self.formatting_enabled_var.set(self.config.get('export.formatting_enabled', False))
         self.font_family_var.set(self.config.get('export.font.family', 'Arial'))
-        self.font_size_var.set(self.config.get('export.font.size', 72))
+        self.font_size_var.set(str(self.config.get('export.font.size', 72)))
         self.change_font_var.set(self.config.get('export.change_font', False))
         self.auto_break_lines_var.set(self.config.get('export.slides.auto_break_long_lines', True))
         
@@ -503,7 +521,12 @@ class ExportOptionsDialog:
         # Formatting
         self.config.set('export.formatting_enabled', self.formatting_enabled_var.get(), save=False)
         self.config.set('export.font.family', self.font_family_var.get(), save=False)
-        self.config.set('export.font.size', self.font_size_var.get(), save=False)
+        # Convert font size string to int for config
+        try:
+            font_size = int(self.font_size_var.get())
+        except ValueError:
+            font_size = 72  # Default if invalid
+        self.config.set('export.font.size', font_size, save=False)
         self.config.set('export.change_font', self.change_font_var.get(), save=False)
         self.config.set('export.slides.auto_break_long_lines', self.auto_break_lines_var.get(), save=False)
         

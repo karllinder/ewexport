@@ -611,7 +611,9 @@ class ProPresenter6Exporter:
                     failed_exports.append(result)
                     
             except Exception as e:
-                error_msg = f"Unexpected error exporting '{song_data.get('title', 'Unknown')}': {str(e)}"
+                title = song_data.get('title', 'Unknown')
+                error_msg = f"Unexpected error exporting '{title}': {str(e)}"
+                logger.error(f"Export failed for song ID {song_data.get('rowid', '?')}: {title}", exc_info=True)
                 failed_exports.append(error_msg)
         
         # Final progress update
@@ -671,6 +673,7 @@ class ProPresenter6Exporter:
         try:
             # Validate song has content
             title = song_data.get('title', 'Untitled')
+            song_id = song_data.get('rowid', 'Unknown ID')
             
             # Check if sections exist and have content
             has_content = False
@@ -681,7 +684,7 @@ class ProPresenter6Exporter:
                         break
             
             if not has_content:
-                error_msg = f"Song '{title}' has no lyrics data and cannot be exported"
+                error_msg = f"Song '{title}' (ID: {song_id}) has no lyrics data and cannot be exported"
                 logger.warning(error_msg)
                 return False, error_msg
             
@@ -717,9 +720,20 @@ class ProPresenter6Exporter:
             
             return True, f"Successfully exported: {song_data.get('title', 'Unknown')}"
             
+        except OSError as e:
+            # Handle file system errors
+            title = song_data.get('title', 'Unknown')
+            if e.errno == 22:  # Invalid argument error
+                error_msg = f"Cannot export '{title}': Invalid filename (contains special characters)"
+            else:
+                error_msg = f"File system error for '{title}': {str(e)}"
+            logger.error(f"{error_msg}. Path: {file_path}", exc_info=True)
+            return False, error_msg
         except Exception as e:
-            error_msg = f"Failed to export '{song_data.get('title', 'Unknown')}': {str(e)}"
-            logger.error(error_msg)
+            title = song_data.get('title', 'Unknown')
+            song_id = song_data.get('rowid', 'Unknown ID')
+            error_msg = f"Failed to export '{title}' (ID: {song_id}): {str(e)}"
+            logger.error(error_msg, exc_info=True)
             return False, error_msg
 
 

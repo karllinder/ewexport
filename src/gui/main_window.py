@@ -244,7 +244,7 @@ class MainWindow:
         """Show about dialog"""
         about_text = """EasyWorship to ProPresenter Converter
         
-Version: 1.0.0
+Version: 1.1.1
 Released: January 2025
         
 Converts songs from EasyWorship 6.1 database format 
@@ -278,13 +278,42 @@ GitHub: https://github.com/karllinder/ewexport"""
                 break
     
     def browse_database(self):
-        """Browse for EasyWorship database folder"""
-        folder = filedialog.askdirectory(
-            title="Select EasyWorship Database Folder",
-            initialdir=self.db_path.get() if self.db_path.get() else os.path.expanduser("~")
+        """Browse for EasyWorship database folder - enhanced to show .db files"""
+        # First try to show a file dialog that displays .db files for reference
+        # This helps users confirm they're in the right folder
+        initial_dir = self.db_path.get() if self.db_path.get() else os.path.expanduser("~")
+        
+        # Use a custom dialog approach: show a file dialog to let users see .db files,
+        # but we actually want the directory path
+        db_file = filedialog.askopenfilename(
+            title="Select Songs.db or SongWords.db (will use containing folder)",
+            initialdir=initial_dir,
+            filetypes=[
+                ("EasyWorship Database Files", "*.db"),
+                ("Songs Database", "Songs.db"),
+                ("Words Database", "SongWords.db"),
+                ("All Files", "*.*")
+            ]
         )
         
-        if folder:
+        if db_file:
+            # Extract the directory from the selected file
+            folder = os.path.dirname(db_file)
+            
+            # Verify it contains the necessary database files
+            songs_db = Path(folder) / "Songs.db"
+            words_db = Path(folder) / "SongWords.db"
+            
+            if not songs_db.exists() or not words_db.exists():
+                # Warn but still allow selection (user might know what they're doing)
+                response = messagebox.askyesno(
+                    "Database Files Missing",
+                    f"Warning: Could not find both Songs.db and SongWords.db in:\n{folder}\n\n"
+                    "Do you want to use this folder anyway?"
+                )
+                if not response:
+                    return
+            
             self.db_path.set(folder)
             # Save to config
             self.config.set('paths.last_easyworship_path', folder)
@@ -436,14 +465,21 @@ GitHub: https://github.com/karllinder/ewexport"""
                     # Get processed lyrics with sections
                     processed = self.db.get_song_with_processed_lyrics(song_data['rowid'])
                     
-                    if processed and processed.get('sections'):
-                        sections = processed['sections']
-                        songs_to_export.append((song_data, sections))
+                    if processed:
+                        # Use the processed song data which has all fields properly filled
+                        # This ensures we have consistent data for export
+                        if processed.get('sections'):
+                            sections = processed['sections']
+                            songs_to_export.append((processed, sections))
+                        else:
+                            # Songs without any parseable content - add with empty section
+                            # This will be caught by the exporter's validation
+                            empty_sections = []
+                            songs_to_export.append((processed, empty_sections))
                     else:
-                        # Songs without any parseable content - add with empty section
-                        # This will be caught by the exporter's validation
-                        empty_sections = []
-                        songs_to_export.append((song_data, empty_sections))
+                        # Fallback if processing fails - still try to export with basic data
+                        logger.warning(f"Could not process song ID {song_data['rowid']}: {song_data.get('title', 'Unknown')}")
+                        songs_to_export.append((song_data, []))
             
             # Export songs
             output_dir = Path(self.output_path.get())
@@ -459,6 +495,7 @@ GitHub: https://github.com/karllinder/ewexport"""
             
         except Exception as e:
             error_msg = f"Export failed with error: {str(e)}"
+            logger.error("Export worker failed", exc_info=True)
             self.root.after(0, self.export_error, error_msg)
     
     def update_export_progress(self, current: int, total: int, song_title: str):
