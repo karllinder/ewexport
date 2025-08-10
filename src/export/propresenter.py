@@ -555,14 +555,17 @@ class ProPresenter6Exporter:
         failed_exports = []
         total_songs = len(songs_with_sections)
         
-        # Check for duplicates first if config says not to overwrite
-        duplicates = []
+        # Build a map of existing files for duplicate detection
+        existing_files = {}
         if self.config and not self.config.get('export.overwrite_existing', False):
-            for song_data, _ in songs_with_sections:
+            # Count how many songs will create each filename
+            for idx, (song_data, _) in enumerate(songs_with_sections):
                 filename = self._generate_filename(song_data)
                 file_path = output_path / filename
                 if file_path.exists():
-                    duplicates.append((song_data, file_path))
+                    if str(file_path) not in existing_files:
+                        existing_files[str(file_path)] = []
+                    existing_files[str(file_path)].append(idx)
         
         # Reset duplicate action for new batch
         self.duplicate_action = None
@@ -578,8 +581,16 @@ class ProPresenter6Exporter:
                 file_path = output_path / filename
                 
                 if file_path.exists() and not (self.config and self.config.get('export.overwrite_existing', False)):
-                    # Handle duplicate
-                    action = self._handle_duplicate(file_path, len(duplicates) - duplicates.index((song_data, file_path)) - 1, parent_window)
+                    # Handle duplicate - calculate remaining duplicates
+                    remaining = 0
+                    if str(file_path) in existing_files:
+                        # Count how many songs after this one will also hit this file
+                        indices = existing_files[str(file_path)]
+                        for idx in indices:
+                            if idx > i:
+                                remaining += 1
+                    
+                    action = self._handle_duplicate(file_path, remaining, parent_window)
                     
                     if action == 'skip':
                         successful_exports.append(f"Skipped: {song_data.get('title', 'Unknown')}")
