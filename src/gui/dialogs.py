@@ -382,7 +382,7 @@ class ExportOptionsDialog:
         frame.pack(fill=tk.BOTH, expand=True)
         
         # Intro slide
-        intro_frame = ttk.LabelFrame(frame, text="Intro Slide", padding="10")
+        intro_frame = ttk.LabelFrame(frame, text="First Slide", padding="10")
         intro_frame.pack(fill=tk.X, pady=(0, 10))
         
         self.add_intro_var = tk.BooleanVar()
@@ -404,7 +404,7 @@ class ExportOptionsDialog:
         self.intro_group_entry.pack(anchor=tk.W)
         
         # Blank slide
-        blank_frame = ttk.LabelFrame(frame, text="Blank Slide", padding="10")
+        blank_frame = ttk.LabelFrame(frame, text="Last Slide", padding="10")
         blank_frame.pack(fill=tk.X, pady=(0, 10))
         
         self.add_blank_var = tk.BooleanVar()

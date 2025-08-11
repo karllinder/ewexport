@@ -2,6 +2,31 @@
 
 All notable changes to the EasyWorship to ProPresenter Converter project will be documented in this file.
 
+## [1.1.2] - 2025-01-11
+
+### 🎨 UI and Export Improvements
+
+This patch release improves the Export Options dialog and fixes a critical bug where First/Last slides were not being added to the ProPresenter export.
+
+### 🔧 Bug Fixes & Improvements
+
+#### Export Options - First/Last Slides
+- **Fixed:** First and Last slides were not being added to the ProPresenter XML export despite being configured
+- **Fixed:** Blank slide creation was failing due to empty content handling
+- **Improvement:** Renamed "Intro Slide" to "First Slide" for better clarity
+- **Improvement:** Renamed "Blank Slide" to "Last Slide" for better clarity
+- **Implementation:** Added proper configuration reading in ProPresenter exporter
+- **Implementation:** Added support for custom group names for First/Last slides
+- **Impact:** First and Last slides now work correctly and are properly exported to ProPresenter format
+
+### 📝 Technical Details
+- Modified `create_pro6_document` method to check for First/Last slide configuration
+- Added `custom_name` parameter to `create_slide_group` method
+- Improved handling of blank slides with empty content
+- Added 'blank' section type to color and name mappings
+
+---
+
 ## [1.1.1] - 2025-01-11
 
 ### 🐛 Bug Fix Release

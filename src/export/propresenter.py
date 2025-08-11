@@ -172,7 +172,8 @@ class ProPresenter6Exporter:
             'outro': '0.5 0.5 0.5 1',   # Gray
             'ending': '0.5 0.5 0.5 1',  # Gray
             'tag': '1 0.5 0 1',         # Orange
-            'interlude': '0 1 0.5 1'    # Green
+            'interlude': '0 1 0.5 1',   # Green
+            'blank': '0.3 0.3 0.3 1'    # Dark gray
         }
         return colors.get(section_type.lower(), '0 0 0 1')
     
@@ -194,7 +195,8 @@ class ProPresenter6Exporter:
             'outro': 'Outro',
             'ending': 'Outro',
             'tag': 'Tag',
-            'interlude': 'Interlude'
+            'interlude': 'Interlude',
+            'blank': 'Blank'
         }
         
         return section_map.get(section_type.lower(), section_type.title())
@@ -303,6 +305,18 @@ class ProPresenter6Exporter:
         groups_array = ET.SubElement(root, 'array')
         groups_array.set('rvXMLIvarName', 'groups')
         
+        # Add intro slide if configured
+        if self.config and self.config.get('export.slides.add_intro_slide', False):
+            intro_text = self.config.get('export.slides.intro_slide_text', '')
+            intro_group_name = self.config.get('export.slides.intro_slide_group', 'Intro')
+            if intro_text:  # Only add if there's text
+                intro_section = {
+                    'type': 'intro',
+                    'content': intro_text
+                }
+                intro_group = self.create_slide_group(intro_section, custom_name=intro_group_name)
+                groups_array.append(intro_group)
+        
         # Create slide groups for each section
         for section in sections:
             if not section.get('content', '').strip():
@@ -311,17 +325,27 @@ class ProPresenter6Exporter:
             group = self.create_slide_group(section)
             groups_array.append(group)
         
+        # Add blank slide if configured
+        if self.config and self.config.get('export.slides.add_blank_slide', False):
+            blank_group_name = self.config.get('export.slides.blank_slide_group', 'Blank')
+            blank_section = {
+                'type': 'blank',
+                'content': ''  # Empty string for blank slide
+            }
+            blank_group = self.create_slide_group(blank_section, custom_name=blank_group_name)
+            groups_array.append(blank_group)
+        
         # Arrangements array (empty for now)
         arrangements = ET.SubElement(root, 'array')
         arrangements.set('rvXMLIvarName', 'arrangements')
         
         return root
     
-    def create_slide_group(self, section: Dict[str, str]) -> ET.Element:
+    def create_slide_group(self, section: Dict[str, str], custom_name: Optional[str] = None) -> ET.Element:
         """Create a slide group with proper ProPresenter 6 structure"""
         
         section_type = section.get('type', 'verse')
-        group_name = self.format_section_name(section_type)
+        group_name = custom_name if custom_name else self.format_section_name(section_type)
         
         group = ET.Element('RVSlideGrouping')
         group.set('name', group_name)
@@ -334,10 +358,16 @@ class ProPresenter6Exporter:
         
         # Split content into individual slides
         content = section.get('content', '').strip()
-        if not content:
+        
+        # Special handling for blank slides - allow empty content
+        if not content and section.get('type') != 'blank':
             return group
             
-        slides = self.split_content_into_slides(content)
+        # For blank slides, use empty string if no content
+        if section.get('type') == 'blank' and not content:
+            content = ''
+            
+        slides = self.split_content_into_slides(content) if content else ['']
         
         for slide_content in slides:
             slide = self.create_slide(slide_content)
