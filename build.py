@@ -42,7 +42,7 @@ def build_executable():
         '--clean',             # Clean PyInstaller cache
         '--noconfirm',         # Overwrite output without confirmation
         
-        # Add data files
+        # Add data files (use semicolon on Windows, colon on Unix)
         '--add-data=config;config',
         
         # Hidden imports that PyInstaller might miss

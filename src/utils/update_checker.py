@@ -158,7 +158,12 @@ class UpdateChecker:
             True if automatic checking is enabled
         """
         if self.config:
-            return self.config.get_bool('updates', 'check_on_startup', True)
+            # Use get method with proper path notation
+            value = self.config.get('updates.check_on_startup', True)
+            # Convert to bool if it's a string
+            if isinstance(value, str):
+                return value.lower() in ('true', '1', 'yes', 'on')
+            return bool(value)
         return True
     
     def set_check_on_startup(self, enabled: bool):
@@ -168,8 +173,8 @@ class UpdateChecker:
             enabled: True to enable automatic checking
         """
         if self.config:
-            self.config.set('updates', 'check_on_startup', str(enabled))
-            self.config.save()
+            self.config.set('updates.check_on_startup', enabled)
+            self.config.save_settings()
     
     def format_update_message(self, update_info: Dict[str, Any]) -> str:
         """Format an update notification message
