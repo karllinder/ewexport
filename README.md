@@ -92,16 +92,18 @@ The search bar allows you to:
 
 ## Requirements
 
-- Windows 11 
-- Python 3.8 or higher
+- Windows 10 or 11
 - EasyWorship 6.1 database files
+- That's it! (The executable includes everything else)
 
 ## Installation
 
-### Option 1: Download Pre-built Executable (Easiest)
+### Option 1: Download Executable (Easiest - No Installation Required!)
 1. Go to [Releases](https://github.com/karllinder/ewexport/releases/latest)
-2. Download `ewexport.exe`
-3. Run it - no installation needed!
+2. Download `ewexport.exe` 
+3. Run it from anywhere - it's completely standalone!
+
+The executable includes Python and all dependencies. Nothing else needed!
 
 ### Option 2: Automated Installation
 See [INSTALL.md](INSTALL.md) for detailed installation instructions including automated setup script.

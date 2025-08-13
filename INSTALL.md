@@ -2,16 +2,18 @@
 
 ## Quick Installation (Recommended)
 
-### Option 1: Download Pre-built Executable
+### Option 1: Direct Download (Simplest)
 
 1. Visit the [Latest Release](https://github.com/karllinder/ewexport/releases/latest) page
 2. Download `ewexport.exe` from the Assets section
-3. Save it to your preferred location (e.g., `C:\Program Files\EWExport\`)
-4. Double-click to run - no installation required!
+3. Save it anywhere you like (e.g., Desktop or Documents)
+4. Double-click to run - **that's it!**
+
+The executable is completely standalone and includes everything needed. No Python or other dependencies required!
 
 ### Option 2: Automated Installation Script
 
-For a fully automated installation including Python setup and dependencies:
+For automated download and shortcut creation:
 
 1. **Download the installer script**:
    ```powershell
@@ -29,11 +31,10 @@ For a fully automated installation including Python setup and dependencies:
    ```
 
 The installer will:
-- Check for Python 3.11+ and install if needed
-- Download the latest version of EWExport
-- Install required dependencies
-- Create a desktop shortcut
-- Add to PATH for command-line access
+- Download the latest ewexport.exe from GitHub
+- Create desktop and Start Menu shortcuts
+- Save the executable to `%LOCALAPPDATA%\EWExport`
+- Offer to run the application immediately
 
 ### Installation Options
 
@@ -50,7 +51,16 @@ powershell -ExecutionPolicy Bypass -File install.ps1 -Silent
 powershell -ExecutionPolicy Bypass -File install.ps1 -NoDesktopShortcut
 ```
 
-## Manual Installation from Source
+## The Standalone Executable
+
+The `ewexport.exe` is a completely self-contained application that:
+- **Includes Python runtime** - No Python installation needed
+- **Contains all dependencies** - striprtf, packaging, etc. all bundled
+- **Creates its own configuration** - Automatically sets up folders on first run
+- **Manages settings** - Stores preferences in `%APPDATA%\EWExport`
+- **Is portable** - Can run from any location (USB drive, network share, etc.)
+
+## Manual Installation from Source (For Developers)
 
 ### Prerequisites
 
@@ -101,10 +111,10 @@ To create your own executable:
 ## System Requirements
 
 - **Operating System**: Windows 10 or Windows 11
-- **Python**: 3.11 or higher (for source installation)
 - **Memory**: 512 MB RAM minimum
-- **Disk Space**: 100 MB for application + space for exported files
+- **Disk Space**: 50 MB for executable + space for exported files
 - **Database**: EasyWorship 6.1 or higher database files
+- **No Python Required**: The executable includes everything needed
 
 ## Troubleshooting
 
@@ -122,12 +132,12 @@ If you get an execution policy error, you have two options:
    Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
    ```
 
-### Python Not Found
+### Download Failed
 
-If Python is not found after installation:
-1. Restart your terminal/PowerShell
-2. Verify Python installation: `python --version`
-3. Manually add Python to PATH if needed
+If the installer can't download the executable:
+1. Check your internet connection
+2. Try downloading manually from [GitHub Releases](https://github.com/karllinder/ewexport/releases/latest)
+3. Your firewall or antivirus might be blocking the download
 
 ### Missing Dependencies
 
@@ -140,8 +150,8 @@ pip install --upgrade striprtf packaging
 
 Some antivirus software may flag the executable. This is a false positive common with PyInstaller executables. You can:
 1. Add an exception for ewexport.exe
-2. Run from source instead
-3. Build your own executable from source
+2. Check the file on [VirusTotal](https://www.virustotal.com) for peace of mind
+3. Build your own executable from source if preferred
 
 ## Updating
 
