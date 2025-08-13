@@ -252,7 +252,7 @@ class MainWindow:
         """Show about dialog"""
         about_text = """EasyWorship to ProPresenter Converter
         
-Version: 1.1.3
+Version: 1.1.4
 Released: January 2025
         
 Converts songs from EasyWorship 6.1 database format 
