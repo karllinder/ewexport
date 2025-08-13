@@ -16,6 +16,7 @@ from src.export.propresenter import ProPresenter6Exporter
 from src.gui.settings_window import SettingsWindow
 from src.gui.dialogs import DuplicateFileDialog, ExportOptionsDialog
 from src.utils.config import get_config
+from src.utils.update_checker import UpdateChecker
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,7 @@ class MainWindow:
         self.exporter = ProPresenter6Exporter(config=self.config)
         self.export_in_progress = False
         self.duplicate_action = None  # For remembering duplicate handling choice
+        self.update_checker = UpdateChecker(config=self.config)
         
         # Load search history from settings
         self.load_search_history()
@@ -55,6 +57,10 @@ class MainWindow:
         
         # Save geometry on close
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        
+        # Check for updates on startup if enabled
+        if self.update_checker.should_check_on_startup():
+            self.root.after(1000, self.check_for_updates_startup)
         
     def setup_ui(self):
         """Build the main GUI interface"""
@@ -219,6 +225,8 @@ class MainWindow:
         # Help menu
         help_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Help", menu=help_menu)
+        help_menu.add_command(label="Check for Updates...", command=self.check_for_updates_manual)
+        help_menu.add_separator()
         help_menu.add_command(label="About", command=self.show_about)
     
     def open_settings(self):
@@ -797,3 +805,112 @@ GitHub: https://github.com/karllinder/ewexport"""
         
         # Mark first run complete
         self.config.mark_first_run_complete()
+    
+    def check_for_updates_manual(self):
+        """Manually check for updates from the Help menu"""
+        # Show checking dialog
+        checking_dialog = tk.Toplevel(self.root)
+        checking_dialog.title("Check for Updates")
+        checking_dialog.geometry("300x100")
+        checking_dialog.resizable(False, False)
+        
+        # Center the dialog
+        checking_dialog.transient(self.root)
+        checking_dialog.grab_set()
+        
+        ttk.Label(checking_dialog, text="Checking for updates...").pack(pady=20)
+        progress = ttk.Progressbar(checking_dialog, mode='indeterminate')
+        progress.pack(pady=10, padx=20, fill=tk.X)
+        progress.start()
+        
+        def handle_update_check(update_info):
+            checking_dialog.destroy()
+            
+            if update_info is None:
+                messagebox.showerror(
+                    "Update Check Failed",
+                    "Could not check for updates.\nPlease check your internet connection and try again."
+                )
+                return
+            
+            if not update_info.get('available'):
+                messagebox.showinfo(
+                    "No Updates Available",
+                    f"You are running the latest version (v{update_info['current_version']})."
+                )
+                return
+            
+            # Show update available dialog
+            message = self.update_checker.format_update_message(update_info)
+            response = messagebox.askyesno("Update Available", message)
+            
+            if response:
+                # Open the release page
+                release_info = update_info.get('release_info', {})
+                if release_info.get('html_url'):
+                    self.update_checker.open_specific_release(release_info['html_url'])
+                else:
+                    self.update_checker.open_download_page()
+        
+        # Check for updates in background
+        self.update_checker.check_for_updates_async(handle_update_check)
+    
+    def check_for_updates_startup(self):
+        """Check for updates on application startup (silent unless update available)"""
+        def handle_update_check(update_info):
+            if update_info and update_info.get('available'):
+                # Only show notification if update is available
+                message = self.update_checker.format_update_message(update_info)
+                
+                # Create custom dialog with "Don't show again" option
+                dialog = tk.Toplevel(self.root)
+                dialog.title("Update Available")
+                dialog.geometry("500x400")
+                dialog.resizable(False, False)
+                dialog.transient(self.root)
+                
+                # Message
+                text_widget = tk.Text(dialog, wrap=tk.WORD, height=15, width=60)
+                text_widget.pack(pady=10, padx=10)
+                text_widget.insert('1.0', message)
+                text_widget.config(state='disabled')
+                
+                # Checkbox frame
+                checkbox_frame = ttk.Frame(dialog)
+                checkbox_frame.pack(pady=5)
+                
+                check_var = tk.BooleanVar(value=True)
+                ttk.Checkbutton(
+                    checkbox_frame,
+                    text="Check for updates on startup",
+                    variable=check_var
+                ).pack()
+                
+                # Button frame
+                button_frame = ttk.Frame(dialog)
+                button_frame.pack(pady=10)
+                
+                def download_update():
+                    release_info = update_info.get('release_info', {})
+                    if release_info.get('html_url'):
+                        self.update_checker.open_specific_release(release_info['html_url'])
+                    else:
+                        self.update_checker.open_download_page()
+                    self.update_checker.set_check_on_startup(check_var.get())
+                    dialog.destroy()
+                
+                def close_dialog():
+                    self.update_checker.set_check_on_startup(check_var.get())
+                    dialog.destroy()
+                
+                ttk.Button(button_frame, text="Download Update", command=download_update).pack(side=tk.LEFT, padx=5)
+                ttk.Button(button_frame, text="Not Now", command=close_dialog).pack(side=tk.LEFT, padx=5)
+                
+                # Center the dialog
+                dialog.update_idletasks()
+                x = (dialog.winfo_screenwidth() // 2) - (dialog.winfo_width() // 2)
+                y = (dialog.winfo_screenheight() // 2) - (dialog.winfo_height() // 2)
+                dialog.geometry(f"+{x}+{y}")
+        
+        # Check for updates in background
+        self.update_checker.check_for_updates_async(handle_update_check)

@@ -4,6 +4,9 @@
 # RTF parsing
 striprtf>=0.0.29
 
+# Version comparison for update checking
+packaging>=23.0
+
 # Additional utilities that may be needed
 # xml.etree.ElementTree is built into Python
 # sqlite3 is built into Python
