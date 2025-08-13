@@ -32,15 +32,21 @@ def build_executable():
     project_root = Path(__file__).parent
     os.chdir(project_root)
     
+    # Check if version file exists
+    version_file = Path('version_info.py')
+    
     # PyInstaller command with options
     pyinstaller_args = [
         'pyinstaller',
         '--onefile',           # Single executable file
         '--windowed',          # No console window (GUI app)
         '--name=ewexport',     # Name of the executable
-        '--icon=NONE',         # No icon for now (can add later)
         '--clean',             # Clean PyInstaller cache
         '--noconfirm',         # Overwrite output without confirmation
+        '--noupx',             # Don't use UPX compression (reduces false positives)
+        
+        # Add version information for Windows
+        '--version-file=version_info.py' if version_file.exists() else None,
         
         # Add data files (use semicolon on Windows, colon on Unix)
         '--add-data=config;config',
@@ -50,6 +56,13 @@ def build_executable():
         '--hidden-import=striprtf',
         '--hidden-import=packaging',
         
+        # Exclude unnecessary modules to reduce size and complexity
+        '--exclude-module=matplotlib',
+        '--exclude-module=numpy',
+        '--exclude-module=PIL',
+        '--exclude-module=scipy',
+        '--exclude-module=pandas',
+        
         # Paths
         '--distpath=dist',
         '--workpath=build',
@@ -58,6 +71,9 @@ def build_executable():
         # Main script
         'src/main.py'
     ]
+    
+    # Remove None values from args
+    pyinstaller_args = [arg for arg in pyinstaller_args if arg is not None]
     
     print("Building executable with PyInstaller...")
     print(f"Command: {' '.join(pyinstaller_args)}")

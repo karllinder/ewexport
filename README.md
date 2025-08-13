@@ -105,6 +105,8 @@ The search bar allows you to:
 
 The executable includes Python and all dependencies. Nothing else needed!
 
+**Note**: Some antivirus software may flag the executable as a false positive. This is common with PyInstaller apps. See [ANTIVIRUS.md](ANTIVIRUS.md) for details and solutions.
+
 ### Option 2: Automated Installation
 See [INSTALL.md](INSTALL.md) for detailed installation instructions including automated setup script.
 

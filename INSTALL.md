@@ -148,10 +148,11 @@ pip install --upgrade striprtf packaging
 
 ### Antivirus Warnings
 
-Some antivirus software may flag the executable. This is a false positive common with PyInstaller executables. You can:
-1. Add an exception for ewexport.exe
-2. Check the file on [VirusTotal](https://www.virustotal.com) for peace of mind
-3. Build your own executable from source if preferred
+Some antivirus software (especially Windows Defender) may flag the executable as a false positive. This is common with PyInstaller applications.
+
+**Quick Solution**: Add `ewexport.exe` to your antivirus exception list.
+
+**For complete information**: See [ANTIVIRUS.md](ANTIVIRUS.md) for detailed explanation, verification steps, and solutions.
 
 ## Updating
 

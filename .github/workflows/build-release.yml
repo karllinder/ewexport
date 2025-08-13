@@ -25,9 +25,9 @@ jobs:
         pip install -r requirements.txt
         pip install pyinstaller
     
-    - name: Build executable
+    - name: Build executable (clean build for antivirus compatibility)
       run: |
-        python build.py
+        python build_clean.py
     
     - name: Test executable exists
       run: |
