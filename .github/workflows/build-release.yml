@@ -42,7 +42,7 @@ jobs:
       shell: pwsh
     
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ewexport-windows
         path: dist/ewexport.exe
@@ -61,7 +61,7 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Download Windows artifact
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ewexport-windows
         path: ./artifacts
