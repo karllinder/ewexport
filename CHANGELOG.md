@@ -2,6 +2,58 @@
 
 All notable changes to the EasyWorship to ProPresenter Converter project will be documented in this file.
 
+## [1.1.3] - 2025-01-13
+
+### 🚀 Auto-Distribution System
+
+This release introduces a comprehensive auto-distribution system with automated installation, update checking, and executable build pipeline.
+
+### ✨ New Features
+
+#### PowerShell Installation Script
+- **Automated Setup**: Complete installation with Python detection and setup
+- **GitHub Integration**: Downloads latest release from GitHub API
+- **Desktop Shortcuts**: Automatic shortcut creation
+- **Dependency Management**: Installs required packages (striprtf, packaging)
+- **Flexible Options**: Custom installation paths and silent mode
+
+#### Update Checking System
+- **Check for Updates Menu**: New menu item in Help menu
+- **Automatic Checks**: Configurable startup update checking
+- **GitHub API Integration**: Version comparison against latest releases
+- **User Preferences**: Persistent settings for update notifications
+- **Direct Downloads**: Opens browser to latest release page
+
+#### Executable Build System
+- **PyInstaller Integration**: Single-file Windows executable creation (~12 MB)
+- **Build Scripts**: `build.py` Python script and `build.bat` Windows wrapper
+- **GitHub Actions**: Automated builds on version tags
+- **Release Automation**: Automatic GitHub release creation with exe attachment
+
+### 🔧 Technical Improvements
+
+#### Build Infrastructure
+- **GitHub Actions Workflow**: `.github/workflows/build-release.yml`
+- **Automated Releases**: Trigger on version tags (v*)
+- **Windows Builds**: Native Windows executable generation
+- **Error Handling**: Improved build script permission handling
+
+#### Documentation
+- **INSTALL.md**: Comprehensive installation guide
+- **Build Instructions**: Added to README.md
+- **Security Guidance**: Safe installation practices
+- **Troubleshooting**: Common issues and solutions
+
+### 🐛 Bug Fixes
+- **ConfigManager Compatibility**: Fixed `get_bool` method error in update checker
+- **Build Permissions**: Better handling of file access during builds
+- **Settings Persistence**: Proper method calls for configuration saving
+
+### 📦 Dependencies
+- Added `packaging>=23.0` for version comparison
+
+---
+
 ## [1.1.2] - 2025-01-11
 
 ### 🎨 UI and Export Improvements
