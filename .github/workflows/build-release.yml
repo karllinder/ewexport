@@ -1,0 +1,95 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Trigger on version tags like v1.1.2
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+    
+    - name: Build executable
+      run: |
+        python build.py
+    
+    - name: Test executable exists
+      run: |
+        if (Test-Path "dist/ewexport.exe") {
+          Write-Host "Executable built successfully"
+          $size = (Get-Item "dist/ewexport.exe").Length / 1MB
+          Write-Host "Size: $([math]::Round($size, 2)) MB"
+        } else {
+          Write-Host "ERROR: Executable not found!"
+          exit 1
+        }
+      shell: pwsh
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ewexport-windows
+        path: dist/ewexport.exe
+        retention-days: 7
+
+  create-release:
+    needs: build-windows
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Download Windows artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: ewexport-windows
+        path: ./artifacts
+    
+    - name: Get version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+    
+    - name: Read release notes from CHANGELOG
+      id: changelog
+      run: |
+        # Extract release notes for this version from CHANGELOG.md
+        # This is a simple example - adjust based on your CHANGELOG format
+        if [ -f "CHANGELOG.md" ]; then
+          # Extract section for current version
+          awk "/## \[${{ steps.get_version.outputs.VERSION }}\]/,/## \[/" CHANGELOG.md | head -n -1 > release_notes.txt
+        else
+          echo "Release ${{ steps.get_version.outputs.VERSION }}" > release_notes.txt
+        fi
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Release ${{ steps.get_version.outputs.VERSION }}
+        body_path: release_notes.txt
+        draft: false
+        prerelease: false
+        files: |
+          ./artifacts/ewexport.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
