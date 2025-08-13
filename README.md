@@ -98,6 +98,15 @@ The search bar allows you to:
 
 ## Installation
 
+### Option 1: Download Pre-built Executable (Easiest)
+1. Go to [Releases](https://github.com/karllinder/ewexport/releases/latest)
+2. Download `ewexport.exe`
+3. Run it - no installation needed!
+
+### Option 2: Automated Installation
+See [INSTALL.md](INSTALL.md) for detailed installation instructions including automated setup script.
+
+### Option 3: Run from Source
 1. Clone the repository:
 ```bash
 git clone https://github.com/karllinder/ewexport.git
@@ -156,3 +165,41 @@ The only requirements are:
 - Include the license text
 
 The software is provided "as is", without warranty of any kind.
+
+## Building from Source
+
+### Creating the Executable
+
+#### Quick Build (Windows)
+Simply run:
+```batch
+build.bat
+```
+
+#### Manual Build
+```bash
+# Install PyInstaller
+pip install pyinstaller
+
+# Run build script
+python build.py
+```
+
+The executable will be created in the `dist` folder.
+
+### Automated Releases
+
+This project uses GitHub Actions for automated builds. When you push a version tag, it automatically:
+1. Builds the Windows executable
+2. Creates a GitHub release
+3. Uploads the executable as a release asset
+
+To create a new release:
+```bash
+git tag v1.1.3
+git push origin v1.1.3
+```
+
+## Support
+
+Report issues at: [GitHub Issues](https://github.com/karllinder/ewexport/issues)
