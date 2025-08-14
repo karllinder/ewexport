@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional
 import shutil
 
 class SettingsWindow:
-    CURRENT_VERSION = "1.1.0"  # Version of the section mappings schema
+    CURRENT_VERSION = "1.2.0"  # Version of the section mappings schema
     
     def __init__(self, parent_window=None):
         self.parent = parent_window

@@ -2,6 +2,59 @@
 
 All notable changes to the EasyWorship to ProPresenter Converter project will be documented in this file.
 
+## [1.2.0] - 2025-01-14
+
+### 🚀 Manual Release System & Build Improvements
+
+This release introduces a comprehensive manual build and release system to eliminate antivirus false positives and provides better control over the distribution process.
+
+### ✨ New Features
+
+#### Manual Build and Release System
+- **Local Build Process**: New `build_and_release.py` script for complete build automation
+- **Upload Tool**: `upload_release.py` for uploading to existing GitHub releases
+- **GitHub Actions Update**: Now creates draft releases only, no more problematic automated builds
+- **SHA256 Verification**: Automatic hash calculation and verification for file integrity
+- **Release Documentation**: Comprehensive `RELEASE_PROCESS.md` with step-by-step instructions
+
+#### Antivirus Compatibility Improvements
+- **Trusted Environment Builds**: Local builds from development machines significantly reduce false positives
+- **Optimized Build Configuration**: Enhanced `build_clean.py` with better antivirus mitigation
+- **Security Documentation**: Updated ANTIVIRUS.md with latest guidance
+- **File Verification**: SHA256 hashes included in all releases for integrity verification
+
+### 🔧 Technical Improvements
+
+#### Build System
+- **Clean Build Environment**: Automated cleanup of build artifacts
+- **Dependency Optimization**: Better module exclusion for smaller, cleaner executables
+- **Version Consistency**: Automatic version detection from setup.py
+- **Error Handling**: Comprehensive error reporting and recovery procedures
+
+#### Release Process
+- **Draft Release Creation**: GitHub Actions creates draft releases with proper release notes
+- **Manual Upload Workflow**: Streamlined process for uploading locally-built executables
+- **Release Notes Automation**: Automatic extraction from CHANGELOG.md
+- **Security Information**: Automatic inclusion of antivirus guidance in release descriptions
+
+### 📚 Documentation
+- **RELEASE_PROCESS.md**: Complete guide for maintainers
+- **Build Scripts**: Comprehensive comments and error handling
+- **Troubleshooting**: Solutions for common build and release issues
+- **Security Guidelines**: Best practices for avoiding false positives
+
+### 🛡️ Security & Reliability
+- **Local Build Verification**: Multiple verification steps before release
+- **Hash-Based Integrity**: SHA256 verification for all distributed files
+- **Trusted Build Environment**: Builds from known, secure development machines
+- **Emergency Procedures**: Documented processes for handling security issues
+
+### 💡 Benefits
+- **Reduced False Positives**: Local builds have significantly lower antivirus detection rates
+- **Better Quality Control**: Manual oversight of each release
+- **Faster Release Process**: No waiting for GitHub Actions to build
+- **Improved User Trust**: SHA256 hashes and clear security documentation
+
 ## [1.1.6] - 2025-01-14
 
 ### 🛡️ Antivirus False Positive Mitigation

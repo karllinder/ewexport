@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class ConfigManager:
     """Manages application settings with version tracking and migration support"""
     
-    CURRENT_VERSION = "1.1.0"  # Version of the settings schema
+    CURRENT_VERSION = "1.2.0"  # Version of the settings schema
     
     def __init__(self):
         """Initialize configuration manager"""
