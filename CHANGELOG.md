@@ -2,6 +2,31 @@
 
 All notable changes to the EasyWorship to ProPresenter Converter project will be documented in this file.
 
+## [1.1.6] - 2025-01-14
+
+### 🛡️ Antivirus False Positive Mitigation
+
+This release focuses on reducing false positive detections from antivirus software.
+
+### ✨ Improvements
+- **Clean Build Process**: Optimized PyInstaller configuration to reduce AV false positives
+- **No UPX Compression**: Disabled UPX compression which often triggers antivirus warnings
+- **Reduced Module Inclusion**: Excluded unnecessary Python modules to create cleaner executable
+- **Windows Metadata**: Added proper version information and manifest
+- **Documentation**: Added comprehensive ANTIVIRUS.md guide for users and IT administrators
+
+### 📚 Documentation
+- Added ANTIVIRUS.md with detailed information about false positives
+- Instructions for whitelisting and verification
+- Enterprise deployment guidelines
+- Alternative solutions for persistent AV issues
+
+### 🔧 Technical Changes
+- Created `ewexport_clean.spec` with optimized PyInstaller settings
+- Updated `build_clean.py` with antivirus-friendly build process
+- Excluded cryptographic and network modules not needed for operation
+- Added SHA256 hash verification support
+
 ## [1.1.5] - 2025-01-14
 
 ### 🐛 Bug Fixes
