@@ -1,4 +1,4 @@
-name: Build and Release
+name: Create Release (Manual Upload)
 
 on:
   push:
@@ -7,49 +7,7 @@ on:
   workflow_dispatch:  # Allow manual triggering
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pyinstaller
-    
-    - name: Build executable (clean build for antivirus compatibility)
-      run: |
-        python build_clean.py
-    
-    - name: Test executable exists
-      run: |
-        if (Test-Path "dist/ewexport.exe") {
-          Write-Host "Executable built successfully"
-          $size = (Get-Item "dist/ewexport.exe").Length / 1MB
-          Write-Host "Size: $([math]::Round($size, 2)) MB"
-        } else {
-          Write-Host "ERROR: Executable not found!"
-          exit 1
-        }
-      shell: pwsh
-    
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ewexport-windows
-        path: dist/ewexport.exe
-        retention-days: 7
-
   create-release:
-    needs: build-windows
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     
@@ -60,12 +18,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Download Windows artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: ewexport-windows
-        path: ./artifacts
-    
     - name: Get version from tag
       id: get_version
       run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
@@ -74,22 +26,50 @@ jobs:
       id: changelog
       run: |
         # Extract release notes for this version from CHANGELOG.md
-        # This is a simple example - adjust based on your CHANGELOG format
         if [ -f "CHANGELOG.md" ]; then
           # Extract section for current version
           awk "/## \[${{ steps.get_version.outputs.VERSION }}\]/,/## \[/" CHANGELOG.md | head -n -1 > release_notes.txt
+          
+          # Add manual upload instructions
+          echo "" >> release_notes.txt
+          echo "## 📥 Download" >> release_notes.txt
+          echo "" >> release_notes.txt
+          echo "**Note**: Executables are built locally and uploaded manually to avoid antivirus false positives." >> release_notes.txt
+          echo "" >> release_notes.txt
+          echo "- **ewexport.exe** - Windows executable (will be uploaded shortly)" >> release_notes.txt
+          echo "- **release_info.json** - Build information and SHA256 hash" >> release_notes.txt
+          echo "" >> release_notes.txt
+          echo "## 🛡️ Antivirus Information" >> release_notes.txt
+          echo "" >> release_notes.txt
+          echo "If your antivirus flags the executable:" >> release_notes.txt
+          echo "1. Verify the SHA256 hash in release_info.json" >> release_notes.txt
+          echo "2. Add an exception for ewexport.exe" >> release_notes.txt
+          echo "3. See [ANTIVIRUS.md](https://github.com/karllinder/ewexport/blob/main/ANTIVIRUS.md) for detailed guidance" >> release_notes.txt
         else
           echo "Release ${{ steps.get_version.outputs.VERSION }}" > release_notes.txt
+          echo "" >> release_notes.txt
+          echo "Executable will be uploaded manually." >> release_notes.txt
         fi
     
-    - name: Create Release
+    - name: Create Release (Draft)
       uses: softprops/action-gh-release@v1
       with:
         name: Release ${{ steps.get_version.outputs.VERSION }}
         body_path: release_notes.txt
-        draft: false
+        draft: true  # Create as draft for manual upload
         prerelease: false
         files: |
-          ./artifacts/ewexport.exe
+          ANTIVIRUS.md
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Post-creation notice
+      run: |
+        echo "🎉 Draft release created: ${{ steps.get_version.outputs.VERSION }}"
+        echo ""
+        echo "📝 Next steps:"
+        echo "1. Run: python build_and_release.py"
+        echo "2. Upload ewexport.exe to the draft release"
+        echo "3. Publish the release"
+        echo ""
+        echo "🌐 Release URL: https://github.com/karllinder/ewexport/releases/tag/${{ steps.get_version.outputs.VERSION }}"
