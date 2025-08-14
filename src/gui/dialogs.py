@@ -273,21 +273,6 @@ class ExportOptionsDialog:
         ttk.Checkbutton(naming_frame, text="Include author in filename", 
                        variable=self.include_author_var).pack(anchor=tk.W, pady=2)
         
-        # Folder structure
-        folder_frame = ttk.LabelFrame(frame, text="Folder Structure", padding="10")
-        folder_frame.pack(fill=tk.X, pady=(0, 10))
-        
-        self.create_subfolder_var = tk.BooleanVar()
-        ttk.Checkbutton(folder_frame, text="Create subfolder for export", 
-                       variable=self.create_subfolder_var).pack(anchor=tk.W, pady=2)
-        
-        ttk.Label(folder_frame, text="Subfolder name pattern:").pack(anchor=tk.W, pady=(5, 2))
-        self.subfolder_pattern_var = tk.StringVar()
-        ttk.Entry(folder_frame, textvariable=self.subfolder_pattern_var, 
-                 width=40).pack(anchor=tk.W)
-        ttk.Label(folder_frame, text="Use {date} for current date", 
-                 font=('TkDefaultFont', 8)).pack(anchor=tk.W)
-        
         # Duplicate handling
         dup_frame = ttk.LabelFrame(frame, text="Duplicate Files", padding="10")
         dup_frame.pack(fill=tk.X)
@@ -481,8 +466,6 @@ class ExportOptionsDialog:
         
         self.include_ccli_var.set(self.config.get('export.include_ccli_in_filename', False))
         self.include_author_var.set(self.config.get('export.include_author_in_filename', False))
-        self.create_subfolder_var.set(self.config.get('export.create_subfolder', False))
-        self.subfolder_pattern_var.set(self.config.get('export.subfolder_name', 'ProPresenter_Export_{date}'))
         self.overwrite_var.set(self.config.get('export.overwrite_existing', False))
         
         # Formatting
@@ -514,8 +497,6 @@ class ExportOptionsDialog:
         
         self.config.set('export.include_ccli_in_filename', self.include_ccli_var.get(), save=False)
         self.config.set('export.include_author_in_filename', self.include_author_var.get(), save=False)
-        self.config.set('export.create_subfolder', self.create_subfolder_var.get(), save=False)
-        self.config.set('export.subfolder_name', self.subfolder_pattern_var.get(), save=False)
         self.config.set('export.overwrite_existing', self.overwrite_var.get(), save=False)
         
         # Formatting

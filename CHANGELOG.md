@@ -2,6 +2,16 @@
 
 All notable changes to the EasyWorship to ProPresenter Converter project will be documented in this file.
 
+## [1.1.5] - 2025-01-14
+
+### 🐛 Bug Fixes
+- **Remove Non-Functional Subfolder Export Option** (#13): Removed the broken subfolder export feature from Export Options dialog as it was not implemented in the export logic and added unnecessary complexity
+
+### 🔧 Technical Improvements
+- Simplified Export Options dialog by removing unused UI elements
+- Cleaned up configuration settings by removing subfolder-related options
+- Reduced code complexity and potential confusion for users
+
 ## [1.1.3] - 2025-01-13
 
 ### 🚀 Auto-Distribution System
