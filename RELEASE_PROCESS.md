@@ -31,9 +31,11 @@ Use the comprehensive build and release script:
 ```powershell
 # 1. Update version in setup.py and CHANGELOG.md
 # 2. Commit changes and push to main
-# 3. Run the build and release script
-python build_and_release.py
+# 3. Run the build and release script (Windows-safe version)
+python build_and_release_safe.py
 ```
+
+**Note**: Use the `_safe.py` versions of scripts on Windows to avoid Unicode encoding issues.
 
 This script will:
 - ✅ Clean build environment
@@ -70,8 +72,8 @@ The GitHub Actions workflow will create a **draft release** automatically.
 
 #### Step 3: Upload Executable
 ```powershell
-# Upload to existing release
-python upload_release.py
+# Upload to existing release (Windows-safe version)
+python upload_release_safe.py
 ```
 
 #### Step 4: Publish Release
