@@ -45,37 +45,32 @@ def initialize_application():
     logger.info(f"Application initialized. Running from: {application_path}")
     logger.info(f"Configuration directory: {app_data_dir}")
     
-    # Check if config directory exists in executable path (for bundled config files)
-    if getattr(sys, 'frozen', False):
-        bundled_config = Path(application_path) / 'config'
-        if not bundled_config.exists():
-            bundled_config.mkdir(exist_ok=True)
-            # Create default section_mappings.json if it doesn't exist
-            default_mappings_file = bundled_config / 'section_mappings.json'
-            if not default_mappings_file.exists():
-                import json
-                default_mappings = {
-                    "version": "1.0.0",
-                    "section_mappings": {
-                        "vers": "Verse",
-                        "refräng": "Chorus",
-                        "refrÃ¤ng": "Chorus",
-                        "brygga": "Bridge",
-                        "stick": "Bridge",
-                        "pre-chorus": "Pre-Chorus",
-                        "förrefräng": "Pre-Chorus",
-                        "fÃ¶rrefrÃ¤ng": "Pre-Chorus",
-                        "outro": "Outro",
-                        "slut": "Outro"
-                    },
-                    "number_mapping_rules": {
-                        "preserve_numbers": True,
-                        "format": "{section_name} {number}"
-                    }
-                }
-                with open(default_mappings_file, 'w', encoding='utf-8') as f:
-                    json.dump(default_mappings, f, indent=2, ensure_ascii=False)
-                logger.info("Created default section_mappings.json")
+    # Ensure default section mappings exist in APPDATA
+    section_mappings_file = app_data_dir / 'section_mappings.json'
+    if not section_mappings_file.exists():
+        import json
+        default_mappings = {
+            "version": "1.2.4",
+            "section_mappings": {
+                "vers": "Verse",
+                "refräng": "Chorus",
+                "refrÃ¤ng": "Chorus",
+                "brygga": "Bridge",
+                "stick": "Bridge",
+                "pre-chorus": "Pre-Chorus",
+                "förrefräng": "Pre-Chorus",
+                "fÃ¶rrefrÃ¤ng": "Pre-Chorus",
+                "outro": "Outro",
+                "slut": "Outro"
+            },
+            "number_mapping_rules": {
+                "preserve_numbers": True,
+                "format": "{section_name} {number}"
+            }
+        }
+        with open(section_mappings_file, 'w', encoding='utf-8') as f:
+            json.dump(default_mappings, f, indent=2, ensure_ascii=False)
+        logger.info("Created default section_mappings.json in APPDATA")
 
 from src.gui.main_window import MainWindow
 

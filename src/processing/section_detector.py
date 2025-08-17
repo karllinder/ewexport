@@ -33,8 +33,11 @@ class SectionDetector:
     def _load_section_mappings(self, config_path: Optional[str] = None):
         """Load section mappings from configuration file."""
         if config_path is None:
-            # Default to config/section_mappings.json
-            config_path = Path(__file__).parent.parent.parent / "config" / "section_mappings.json"
+            # Default to APPDATA/EWExport/section_mappings.json
+            import os
+            app_data = os.environ.get('APPDATA', Path.home() / 'AppData' / 'Roaming')
+            app_dir = Path(app_data) / 'EWExport'
+            config_path = app_dir / "section_mappings.json"
         
         try:
             with open(config_path, 'r', encoding='utf-8') as f:

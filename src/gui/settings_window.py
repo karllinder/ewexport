@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Dict, Any, Optional
 import shutil
@@ -26,8 +27,11 @@ class SettingsWindow:
             self.window.transient(parent_window.root)
             self.window.grab_set()
         
-        # Load current mappings
-        self.config_file = Path(__file__).parent.parent.parent / "config" / "section_mappings.json"
+        # Load current mappings from APPDATA
+        app_data = os.environ.get('APPDATA', Path.home() / 'AppData' / 'Roaming')
+        app_dir = Path(app_data) / 'EWExport'
+        app_dir.mkdir(parents=True, exist_ok=True)
+        self.config_file = app_dir / "section_mappings.json"
         self.mappings = {}
         self.original_mappings = {}
         self.ensure_config_exists()
@@ -448,27 +452,11 @@ class SettingsWindow:
     def ensure_config_exists(self):
         """Ensure config file exists with default values for new users"""
         if not self.config_file.exists():
-            # Only create config folder if it doesn't exist and we're not in a packaged app
-            # In packaged apps, the config should already be included
-            if self.config_file.parent.exists():
-                # Config folder exists but file doesn't - create the file
-                default_config = self.get_default_config()
-                with open(self.config_file, 'w', encoding='utf-8') as f:
-                    json.dump(default_config, f, indent=2, ensure_ascii=False)
-            else:
-                # Config folder doesn't exist - likely a development environment
-                # Only create if we're in development (src folder exists)
-                src_folder = Path(__file__).parent.parent
-                if (src_folder / '__init__.py').exists():
-                    # We're in development mode, create the config folder
-                    self.config_file.parent.mkdir(parents=True, exist_ok=True)
-                    default_config = self.get_default_config()
-                    with open(self.config_file, 'w', encoding='utf-8') as f:
-                        json.dump(default_config, f, indent=2, ensure_ascii=False)
-                else:
-                    # We're in a packaged app but config is missing - use defaults in memory
-                    # Don't create a config folder in the working directory
-                    logger.warning("Config file not found in packaged app, using defaults")
+            # Create default config in APPDATA
+            default_config = self.get_default_config()
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(default_config, f, indent=2, ensure_ascii=False)
+            logger.info(f"Created default config at {self.config_file}")
     
     def get_default_config(self):
         """Get default configuration structure"""
@@ -579,13 +567,9 @@ class SettingsWindow:
                     "description": "Section name mappings from Swedish to English for ProPresenter export"
                 }
             
-            # Save to file only if the config file/folder already exists
-            if self.config_file.parent.exists():
-                with open(self.config_file, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, indent=2, ensure_ascii=False)
-            else:
-                # Don't create config folder in packaged app's working directory
-                logger.warning("Cannot save config - config folder not found")
+            # Save to APPDATA config file (folder should already exist)
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
             
             self.original_mappings = self.mappings.copy()
             self.has_changes = False

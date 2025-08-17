@@ -21,7 +21,7 @@ class ConfigManager:
         # Determine config location
         self.app_data_dir = self._get_app_data_dir()
         self.settings_file = self.app_data_dir / "settings.json"
-        self.section_mappings_file = Path(__file__).parent.parent.parent / "config" / "section_mappings.json"
+        self.section_mappings_file = self.app_data_dir / "section_mappings.json"
         
         # Default settings structure
         self.default_settings = self._get_default_settings()

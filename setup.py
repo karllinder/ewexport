@@ -4,7 +4,7 @@ Setup configuration for EasyWorship to ProPresenter Converter
 
 from setuptools import setup, find_packages
 
-VERSION = "1.2.4"
+VERSION = "1.2.5"
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()

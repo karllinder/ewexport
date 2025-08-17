@@ -109,8 +109,8 @@ def create_version_file():
 
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(1, 2, 4, 0),
-    prodvers=(1, 2, 4, 0),
+    filevers=(1, 2, 5, 0),
+    prodvers=(1, 2, 5, 0),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -125,12 +125,12 @@ VSVersionInfo(
         u'040904B0',
         [StringStruct(u'CompanyName', u'EWExport'),
         StringStruct(u'FileDescription', u'EasyWorship to ProPresenter Converter'),
-        StringStruct(u'FileVersion', u'1.2.4.0'),
+        StringStruct(u'FileVersion', u'1.2.5.0'),
         StringStruct(u'InternalName', u'ewexport'),
         StringStruct(u'LegalCopyright', u'Copyright (c) 2025'),
         StringStruct(u'OriginalFilename', u'ewexport.exe'),
         StringStruct(u'ProductName', u'EasyWorship to ProPresenter Converter'),
-        StringStruct(u'ProductVersion', u'1.2.4.0')])
+        StringStruct(u'ProductVersion', u'1.2.5.0')])
       ]), 
     VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
   ]

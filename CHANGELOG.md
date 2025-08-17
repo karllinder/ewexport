@@ -2,6 +2,37 @@
 
 All notable changes to the EasyWorship to ProPresenter Converter project will be documented in this file.
 
+## [1.2.5] - 2026-08-17
+
+### 🐛 Bug Fix - Remove Local Config Folder Creation
+
+This release completely removes the creation of local "config" folders and ensures all configuration files are stored in %APPDATA%\EWExport.
+
+### 🔧 Bug Fix
+
+#### Local Config Folder Creation
+- **Fixed:** Application was creating unwanted "config" folder in working directory
+- **Fixed:** section_mappings.json file being created in current directory
+- **Root Cause:** Multiple hardcoded references to local "./config" paths
+- **Solution:** All config files now saved to %APPDATA%\EWExport exclusively
+- **Impact:** No more spurious config folders created in user's working directory
+
+### 📝 Technical Details
+- Removed all hardcoded references to local "config" folder paths
+- Updated `config.py` to use APPDATA for section_mappings.json
+- Updated `settings_window.py` to save to APPDATA directory
+- Updated `section_detector.py` to load from APPDATA directory
+- Updated `main.py` to create default section mappings in APPDATA
+- Simplified config creation logic - no more development vs packaged app detection
+
+### ✅ Config File Locations (All in %APPDATA%\EWExport)
+- **settings.json**: Application settings
+- **section_mappings.json**: Swedish to English section mappings
+- **logs/**: Log files directory
+
+### 🙏 Credits
+- Karl Linder - Development and testing
+
 ## [1.2.4] - 2026-08-17
 
 ### 🐛 Bug Fix - First Slide Export Option
