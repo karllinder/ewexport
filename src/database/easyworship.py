@@ -4,6 +4,7 @@ EasyWorship database access layer
 
 import sqlite3
 import logging
+import platform
 from pathlib import Path
 from typing import List, Dict, Optional, Any
 
@@ -26,6 +27,48 @@ class EasyWorshipDatabase:
         self.words_db = self.db_path / "SongWords.db"
         self.section_detector = None  # Will be initialized on first use
         
+    def _get_connection(self, db_path: Path) -> sqlite3.Connection:
+        """
+        Create a SQLite connection with proper text encoding.
+        
+        This handles cross-platform encoding issues where EasyWorship databases
+        created on Windows may use Windows-1252 encoding, which causes issues
+        on macOS/Linux that expect UTF-8.
+        
+        Args:
+            db_path: Path to the SQLite database file
+            
+        Returns:
+            SQLite connection with proper text encoding configured
+        """
+        conn = sqlite3.connect(db_path)
+        
+        # Set text factory to handle Windows-1252 encoded text properly
+        # This is crucial for Swedish characters (å, ä, ö) to display correctly
+        if platform.system() != 'Windows':
+            # On non-Windows platforms, assume the data might be Windows-1252 encoded
+            # Try UTF-8 first, fall back to Windows-1252 if that fails
+            def text_factory(data):
+                if data is None:
+                    return None
+                # First try UTF-8
+                try:
+                    return data.decode('utf-8')
+                except UnicodeDecodeError:
+                    # Fall back to Windows-1252 for Windows-created databases
+                    try:
+                        return data.decode('windows-1252')
+                    except UnicodeDecodeError:
+                        # Last resort: replace invalid characters
+                        return data.decode('utf-8', errors='replace')
+            
+            conn.text_factory = text_factory
+        else:
+            # On Windows, use the default text factory but ensure proper handling
+            conn.text_factory = str
+        
+        return conn
+        
     def validate_database(self) -> bool:
         """Check if database files exist and are valid"""
         if not self.songs_db.exists():
@@ -34,12 +77,12 @@ class EasyWorshipDatabase:
             return False
         
         try:
-            conn = sqlite3.connect(self.songs_db)
+            conn = self._get_connection(self.songs_db)
             cursor = conn.execute("SELECT COUNT(*) FROM song")
             cursor.fetchone()
             conn.close()
             
-            conn = sqlite3.connect(self.words_db)
+            conn = self._get_connection(self.words_db)
             cursor = conn.execute("SELECT COUNT(*) FROM word")
             cursor.fetchone()
             conn.close()
@@ -50,7 +93,7 @@ class EasyWorshipDatabase:
     
     def get_all_songs(self) -> List[Dict[str, Any]]:
         """Retrieve all songs with metadata"""
-        conn = sqlite3.connect(self.songs_db)
+        conn = self._get_connection(self.songs_db)
         conn.row_factory = sqlite3.Row
         
         query = """
@@ -75,7 +118,7 @@ class EasyWorshipDatabase:
     
     def get_song_lyrics(self, song_rowid: int) -> Optional[str]:
         """Get RTF lyrics for a specific song"""
-        conn = sqlite3.connect(self.words_db)
+        conn = self._get_connection(self.words_db)
         
         query = """
         SELECT words 
@@ -98,7 +141,7 @@ class EasyWorshipDatabase:
     def get_song_count(self) -> int:
         """Get total number of songs in database"""
         try:
-            conn = sqlite3.connect(self.songs_db)
+            conn = self._get_connection(self.songs_db)
             cursor = conn.execute("SELECT COUNT(*) FROM song")
             count = cursor.fetchone()[0]
             conn.close()
@@ -119,7 +162,7 @@ class EasyWorshipDatabase:
             Dictionary containing song metadata and processed lyrics, or None if not found
         """
         # Get song metadata
-        conn = sqlite3.connect(self.songs_db)
+        conn = self._get_connection(self.songs_db)
         conn.row_factory = sqlite3.Row
         
         query = """

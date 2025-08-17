@@ -2,6 +2,33 @@
 
 All notable changes to the EasyWorship to ProPresenter Converter project will be documented in this file.
 
+## [1.2.1] - 2026-08-17
+
+### 🐛 Critical Bug Fix - Cross-Platform Encoding
+
+This release fixes a critical encoding issue that caused Swedish characters (å, ä, ö) to display incorrectly on macOS when working with EasyWorship databases created on Windows.
+
+### 🔧 Bug Fixes
+
+#### Issue #16: Swedish Character Encoding on macOS
+- **Fixed:** Swedish characters displaying as corrupted/scrambled text on macOS
+- **Root Cause:** SQLite connections were not handling Windows-1252 encoding correctly on non-Windows platforms
+- **Solution:** Added intelligent encoding detection and conversion in database layer
+- **Implementation:** New `_get_connection` method with platform-specific text factory
+- **Impact:** Swedish characters now display correctly across all platforms (Windows, macOS, Linux)
+
+### 📝 Technical Details
+- Added platform detection to handle encoding differences
+- SQLite connections now use custom text factory on non-Windows platforms
+- Graceful fallback chain: UTF-8 → Windows-1252 → UTF-8 with replacement
+- No changes required to RTF parser or ProPresenter export (already UTF-8 compliant)
+
+### ✅ Issues Resolved
+- [#16](https://github.com/karllinder/ewexport/issues/16): Swedish characters displaying incorrectly on macOS
+
+### 🙏 Credits
+- Karl Linder - Development and testing
+
 ## [1.2.0] - 2025-01-14
 
 ### 🚀 Manual Release System & Build Improvements
