@@ -2,7 +2,7 @@
 
 A Windows desktop application that converts songs from EasyWorship 6.1 database format to ProPresenter 6 format with full support for Swedish and English text.
 
-## 🎉 Current Version: v1.2.2
+## 🎉 Current Version: v1.2.3
 
 The converter successfully exports songs from EasyWorship to ProPresenter 6 format with advanced formatting controls and customization options.
 

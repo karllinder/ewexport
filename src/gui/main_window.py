@@ -49,8 +49,7 @@ class MainWindow:
         self.load_search_history()
         
         self.setup_ui()
-        self.auto_detect_easyworship()
-        self.load_saved_paths()
+        self.auto_load_database()
         
         # Bind search variable to update function
         self.search_var.trace('w', self.on_search_changed)
@@ -252,7 +251,7 @@ class MainWindow:
         """Show about dialog"""
         about_text = """EasyWorship to ProPresenter Converter
         
-Version: 1.2.2
+Version: 1.2.3
 Released: August 2026
         
 Converts songs from EasyWorship 6.1 database format 
@@ -268,6 +267,30 @@ Features:
 GitHub: https://github.com/karllinder/ewexport"""
         
         messagebox.showinfo("About", about_text)
+    
+    def auto_load_database(self):
+        """Auto-load database from saved path or auto-detection"""
+        # First try to load from saved path
+        last_db = self.config.get('paths.last_easyworship_path')
+        if last_db and Path(last_db).exists() and (Path(last_db) / 'Songs.db').exists():
+            self.db_path.set(last_db)
+            self.load_songs()
+            # Load export path settings
+            self.load_export_path_settings()
+            return
+        
+        # If no saved path, try auto-detection
+        self.auto_detect_easyworship()
+        # Load export path settings
+        self.load_export_path_settings()
+    
+    def load_export_path_settings(self):
+        """Load export path settings only"""
+        last_export = self.config.get_export_directory()
+        if last_export and last_export.exists():
+            self.output_path.set(str(last_export))
+        else:
+            self.set_default_output_path()
     
     def auto_detect_easyworship(self):
         """Try to auto-detect EasyWorship database path"""
@@ -756,18 +779,17 @@ GitHub: https://github.com/karllinder/ewexport"""
         self.root.destroy()
     
     def load_saved_paths(self):
-        """Load saved paths from config"""
+        """Load saved paths from config (legacy method - use auto_load_database instead)"""
+        # This method is kept for compatibility but auto_load_database should be used
         # Load last database path
         last_db = self.config.get('paths.last_easyworship_path')
         if last_db and Path(last_db).exists():
             self.db_path.set(last_db)
+            # Auto-load songs if we have a valid database path
+            self.load_songs()
         
         # Load last export path or set default
-        last_export = self.config.get_export_directory()
-        if last_export and last_export.exists():
-            self.output_path.set(str(last_export))
-        else:
-            self.set_default_output_path()
+        self.load_export_path_settings()
     
     def set_default_output_path(self):
         """Set default output path based on config or desktop"""

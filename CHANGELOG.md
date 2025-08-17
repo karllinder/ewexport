@@ -2,6 +2,29 @@
 
 All notable changes to the EasyWorship to ProPresenter Converter project will be documented in this file.
 
+## [1.2.3] - 2026-08-17
+
+### 🐛 Bug Fix - Database Auto-Loading
+
+This release fixes the database auto-loading issue that was still present in v1.2.2.
+
+### 🔧 Bug Fix
+
+#### Database Auto-Loading (Final Fix)
+- **Fixed:** Database still required manual "Load Songs" button press on startup
+- **Root Cause:** `load_saved_paths()` method was setting the database path but not calling `load_songs()`
+- **Solution:** Created new `auto_load_database()` method that properly handles both saved paths and auto-detection
+- **Impact:** Database now auto-loads correctly on startup without requiring manual button press
+
+### 📝 Technical Details
+- Replaced separate `auto_detect_easyworship()` and `load_saved_paths()` calls with unified `auto_load_database()` method
+- Prioritizes saved database path over auto-detection
+- Ensures `load_songs()` is called when valid database is found
+- Prevents duplicate loading calls
+
+### 🙏 Credits
+- Karl Linder - Development and testing
+
 ## [1.2.2] - 2026-08-17
 
 ### 🐛 Bug Fixes - Database Loading and Version Display
