@@ -2,6 +2,41 @@
 
 All notable changes to the EasyWorship to ProPresenter Converter project will be documented in this file.
 
+## [1.2.2] - 2026-08-17
+
+### 🐛 Bug Fixes - Database Loading and Version Display
+
+This release fixes several regression issues introduced in v1.2.1.
+
+### 🔧 Bug Fixes
+
+#### Database Auto-Loading
+- **Fixed:** Database no longer auto-loads on startup after encoding fix
+- **Root Cause:** SQLite connection method needed string conversion for Path objects
+- **Solution:** Ensure proper Path to string conversion in `_get_connection` method
+- **Impact:** Database now auto-loads correctly when EasyWorship path is detected
+
+#### Version Display
+- **Fixed:** Application showing version 1.2.0 instead of current version
+- **Root Cause:** Multiple hardcoded version strings not updated consistently
+- **Solution:** Updated all version references throughout the codebase
+- **Impact:** Version now displays correctly as 1.2.2 in About dialog and update checker
+
+#### Config Folder Creation
+- **Fixed:** Unwanted "config" folder created in working directory
+- **Root Cause:** Settings window creating config folder without checking if it's needed
+- **Solution:** Only create config folder in development mode, use bundled config in packaged app
+- **Impact:** No more spurious config folders in user's working directory
+
+### 📝 Technical Details
+- Fixed Path object handling in SQLite connections
+- Updated version strings in setup.py, update_checker.py, main_window.py, version_info.py, and build.py
+- Improved config folder creation logic to respect packaged app structure
+- Added proper logging for config handling issues
+
+### 🙏 Credits
+- Karl Linder - Development and testing
+
 ## [1.2.1] - 2026-08-17
 
 ### 🐛 Critical Bug Fix - Cross-Platform Encoding

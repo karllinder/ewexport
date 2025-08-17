@@ -41,7 +41,11 @@ class EasyWorshipDatabase:
         Returns:
             SQLite connection with proper text encoding configured
         """
-        conn = sqlite3.connect(db_path)
+        # Ensure db_path is a Path object and convert to string for sqlite3
+        if not isinstance(db_path, Path):
+            db_path = Path(db_path)
+        
+        conn = sqlite3.connect(str(db_path))
         
         # Set text factory to handle Windows-1252 encoded text properly
         # This is crucial for Swedish characters (å, ä, ö) to display correctly
@@ -63,9 +67,8 @@ class EasyWorshipDatabase:
                         return data.decode('utf-8', errors='replace')
             
             conn.text_factory = text_factory
-        else:
-            # On Windows, use the default text factory but ensure proper handling
-            conn.text_factory = str
+        # On Windows, use default text factory (str is already the default)
+        # No need to set it explicitly
         
         return conn
         

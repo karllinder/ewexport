@@ -19,7 +19,7 @@ class UpdateChecker:
     
     GITHUB_API_URL = "https://api.github.com/repos/karllinder/ewexport/releases/latest"
     GITHUB_RELEASES_URL = "https://github.com/karllinder/ewexport/releases"
-    CURRENT_VERSION = "1.2.0"  # This should match the version in about dialog
+    CURRENT_VERSION = "1.2.2"  # This should match the version in about dialog
     
     def __init__(self, config=None):
         """Initialize the update checker

@@ -5,9 +5,12 @@ Settings window for configuring section mappings
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import json
+import logging
 from pathlib import Path
 from typing import Dict, Any, Optional
 import shutil
+
+logger = logging.getLogger(__name__)
 
 class SettingsWindow:
     CURRENT_VERSION = "1.2.0"  # Version of the section mappings schema
@@ -445,11 +448,27 @@ class SettingsWindow:
     def ensure_config_exists(self):
         """Ensure config file exists with default values for new users"""
         if not self.config_file.exists():
-            # Create default config for new users
-            self.config_file.parent.mkdir(parents=True, exist_ok=True)
-            default_config = self.get_default_config()
-            with open(self.config_file, 'w', encoding='utf-8') as f:
-                json.dump(default_config, f, indent=2, ensure_ascii=False)
+            # Only create config folder if it doesn't exist and we're not in a packaged app
+            # In packaged apps, the config should already be included
+            if self.config_file.parent.exists():
+                # Config folder exists but file doesn't - create the file
+                default_config = self.get_default_config()
+                with open(self.config_file, 'w', encoding='utf-8') as f:
+                    json.dump(default_config, f, indent=2, ensure_ascii=False)
+            else:
+                # Config folder doesn't exist - likely a development environment
+                # Only create if we're in development (src folder exists)
+                src_folder = Path(__file__).parent.parent
+                if (src_folder / '__init__.py').exists():
+                    # We're in development mode, create the config folder
+                    self.config_file.parent.mkdir(parents=True, exist_ok=True)
+                    default_config = self.get_default_config()
+                    with open(self.config_file, 'w', encoding='utf-8') as f:
+                        json.dump(default_config, f, indent=2, ensure_ascii=False)
+                else:
+                    # We're in a packaged app but config is missing - use defaults in memory
+                    # Don't create a config folder in the working directory
+                    logger.warning("Config file not found in packaged app, using defaults")
     
     def get_default_config(self):
         """Get default configuration structure"""
@@ -560,10 +579,13 @@ class SettingsWindow:
                     "description": "Section name mappings from Swedish to English for ProPresenter export"
                 }
             
-            # Save to file
-            self.config_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.config_file, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
+            # Save to file only if the config file/folder already exists
+            if self.config_file.parent.exists():
+                with open(self.config_file, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=2, ensure_ascii=False)
+            else:
+                # Don't create config folder in packaged app's working directory
+                logger.warning("Cannot save config - config folder not found")
             
             self.original_mappings = self.mappings.copy()
             self.has_changes = False
