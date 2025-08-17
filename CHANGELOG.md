@@ -2,6 +2,34 @@
 
 All notable changes to the EasyWorship to ProPresenter Converter project will be documented in this file.
 
+## [1.2.4] - 2026-08-17
+
+### 🐛 Bug Fix - First Slide Export Option
+
+This release fixes the First Slide export option that was not working in Export Options.
+
+### 🔧 Bug Fix
+
+#### First Slide Export Option
+- **Fixed:** First Slide option in Export Options was not working
+- **Root Cause:** Code was only adding intro slides if they had text content, but users want to add blank first slides
+- **Solution:** Allow intro slides to be added even when text is empty (for title slides or blank slides)
+- **Impact:** First Slide option now works correctly and adds intro slides as intended
+
+### 📝 Technical Details
+- Removed text content requirement for intro slide creation
+- Updated `create_slide_group` method to handle intro slides like blank slides
+- Allow empty content for both 'intro' and 'blank' slide types
+- First slides can now be used as title slides or blank intro slides
+
+### ✅ Confirmed Working
+- **First Slide**: Now creates intro slides even with empty text
+- **Last Slide**: Continues to work as expected
+- **Font Changes**: Continue to work as expected
+
+### 🙏 Credits
+- Karl Linder - Development and testing
+
 ## [1.2.3] - 2026-08-17
 
 ### 🐛 Bug Fix - Database Auto-Loading

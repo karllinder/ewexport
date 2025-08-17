@@ -309,13 +309,13 @@ class ProPresenter6Exporter:
         if self.config and self.config.get('export.slides.add_intro_slide', False):
             intro_text = self.config.get('export.slides.intro_slide_text', '')
             intro_group_name = self.config.get('export.slides.intro_slide_group', 'Intro')
-            if intro_text:  # Only add if there's text
-                intro_section = {
-                    'type': 'intro',
-                    'content': intro_text
-                }
-                intro_group = self.create_slide_group(intro_section, custom_name=intro_group_name)
-                groups_array.append(intro_group)
+            # Add intro slide even if text is empty (for title slides)
+            intro_section = {
+                'type': 'intro',
+                'content': intro_text  # Can be empty for blank intro slide
+            }
+            intro_group = self.create_slide_group(intro_section, custom_name=intro_group_name)
+            groups_array.append(intro_group)
         
         # Create slide groups for each section
         for section in sections:
@@ -359,12 +359,12 @@ class ProPresenter6Exporter:
         # Split content into individual slides
         content = section.get('content', '').strip()
         
-        # Special handling for blank slides - allow empty content
-        if not content and section.get('type') != 'blank':
+        # Special handling for blank and intro slides - allow empty content
+        if not content and section.get('type') not in ['blank', 'intro']:
             return group
             
-        # For blank slides, use empty string if no content
-        if section.get('type') == 'blank' and not content:
+        # For blank and intro slides, use empty string if no content
+        if section.get('type') in ['blank', 'intro'] and not content:
             content = ''
             
         slides = self.split_content_into_slides(content) if content else ['']
