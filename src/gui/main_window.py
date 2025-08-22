@@ -218,6 +218,7 @@ class MainWindow:
         edit_menu.add_command(label="Select All", command=self.select_all)
         edit_menu.add_command(label="Select None", command=self.select_none)
         edit_menu.add_separator()
+        edit_menu.add_command(label="Language Settings...", command=self.open_language_settings)
         edit_menu.add_command(label="Section Mappings...", command=self.open_settings)
         edit_menu.add_command(label="Export Options...", command=self.open_export_options)
         
@@ -241,6 +242,78 @@ class MainWindow:
         """Reload section mappings after settings change"""
         if hasattr(self, 'db') and self.db:
             self.db.reload_section_mappings()
+    
+    def open_language_settings(self):
+        """Open the language settings dialog"""
+        try:
+            # Import here to avoid circular imports
+            from gui.language_dialog import show_language_settings_dialog
+            
+            # Get current language settings
+            current_settings = self.config.get_language_settings()
+            
+            # Show language dialog
+            language_config = show_language_settings_dialog(self.root, self.config, current_settings)
+            
+            if language_config:
+                # Save language settings
+                self.config.set_language_settings(language_config)
+                
+                messagebox.showinfo(
+                    "Language Settings Updated",
+                    f"Language settings have been updated successfully!\n\n"
+                    f"Source languages: {', '.join(language_config.get('source_languages', []))}\n"
+                    f"Target language: {language_config.get('target_language', 'english')}",
+                    parent=self.root
+                )
+                
+                # Reload section mappings if they changed
+                if hasattr(self, 'db') and self.db:
+                    self.db.reload_section_mappings()
+        
+        except Exception as e:
+            logger.error(f"Error opening language settings: {e}")
+            messagebox.showerror("Error", f"Failed to open language settings: {e}")
+    
+    def _validate_language_settings(self):
+        """Validate that language settings are properly configured before export"""
+        try:
+            language_settings = self.config.get_language_settings()
+            
+            # Check if source languages are set
+            source_languages = language_settings.get('source_languages', [])
+            if not source_languages:
+                result = messagebox.askyesnocancel(
+                    "Language Settings Required",
+                    "No source languages have been configured.\n\n"
+                    "Language settings are required for proper section mapping during export.\n\n"
+                    "Would you like to configure language settings now?",
+                    parent=self.root
+                )
+                
+                if result is True:  # Yes - open settings
+                    self.open_language_settings()
+                    # Re-check after settings dialog
+                    updated_settings = self.config.get_language_settings()
+                    return bool(updated_settings.get('source_languages', []))
+                elif result is False:  # No - continue without settings
+                    result2 = messagebox.askyesno(
+                        "Continue Without Language Settings?",
+                        "Export without language settings may result in incorrect section mapping.\n\n"
+                        "Are you sure you want to continue?",
+                        parent=self.root
+                    )
+                    return result2
+                else:  # Cancel
+                    return False
+            
+            # If we have source languages, everything is okay
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error validating language settings: {e}")
+            # Don't block export on validation errors
+            return True
     
     def open_export_options(self):
         """Open the export options dialog"""
@@ -465,6 +538,10 @@ GitHub: https://github.com/karllinder/ewexport"""
         
         if not self.output_path.get():
             messagebox.showwarning("No Output Path", "Please select an output directory.")
+            return
+        
+        # Check if language settings are configured
+        if not self._validate_language_settings():
             return
         
         # Confirm export
@@ -807,15 +884,27 @@ GitHub: https://github.com/karllinder/ewexport"""
     
     def _handle_first_run(self):
         """Handle first run setup"""
-        # Ask user to select output directory
+        # Welcome message
         result = messagebox.showinfo(
             "Welcome",
             "Welcome to EasyWorship to ProPresenter Converter!\n\n"
-            "Please select your default export directory in the next dialog.",
+            "Let's set up your language preferences and export directory.",
             parent=self.root
         )
         
-        # Browse for output directory
+        # Step 1: Language selection
+        if not self._setup_first_run_languages():
+            # User cancelled language setup - still mark first run complete
+            # but they'll need to configure languages later
+            pass
+        
+        # Step 2: Output directory selection
+        result = messagebox.showinfo(
+            "Export Directory",
+            "Now please select your default export directory.",
+            parent=self.root
+        )
+        
         directory = filedialog.askdirectory(
             title="Select Default Export Directory",
             initialdir=str(Path.home() / "Desktop")
@@ -827,6 +916,59 @@ GitHub: https://github.com/karllinder/ewexport"""
         
         # Mark first run complete
         self.config.mark_first_run_complete()
+    
+    def _setup_first_run_languages(self):
+        """Set up languages during first run"""
+        try:
+            # Import here to avoid circular imports
+            from gui.language_dialog import show_language_settings_dialog
+            
+            # Show instruction dialog
+            result = messagebox.showinfo(
+                "Language Setup",
+                "First, let's configure your language settings.\n\n"
+                "Please select which languages are present in your EasyWorship database\n"
+                "and choose your target export language.\n\n"
+                "You can change these settings later from the Edit menu.",
+                parent=self.root
+            )
+            
+            # Get current language settings (should be defaults)
+            current_settings = self.config.get_language_settings()
+            
+            # Show language dialog
+            language_config = show_language_settings_dialog(self.root, self.config, current_settings)
+            
+            if language_config:
+                # Save language settings
+                self.config.set_language_settings(language_config)
+                
+                messagebox.showinfo(
+                    "Language Setup Complete",
+                    f"Language settings configured successfully!\n\n"
+                    f"Source languages: {', '.join(language_config.get('source_languages', []))}\n"
+                    f"Target language: {language_config.get('target_language', 'english')}",
+                    parent=self.root
+                )
+                return True
+            else:
+                messagebox.showinfo(
+                    "Language Setup Skipped",
+                    "Language setup was cancelled.\n\n"
+                    "You can configure language settings later from:\n"
+                    "Edit → Language Settings",
+                    parent=self.root
+                )
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error during first-run language setup: {e}")
+            messagebox.showerror(
+                "Language Setup Error", 
+                f"Failed to set up language settings: {e}\n\n"
+                "You can configure them later from the Edit menu."
+            )
+            return False
     
     def check_for_updates_manual(self):
         """Manually check for updates from the Help menu"""
