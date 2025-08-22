@@ -21,19 +21,20 @@ def clean_environment():
             except PermissionError as e:
                 print(f"  Warning: Could not clean {dir_name}: {e}")
     
-    # Clean spec files
-    for spec_file in ['ewexport.spec', 'ewexport_clean.spec']:
-        if os.path.exists(spec_file) and spec_file != 'ewexport_clean.spec':
-            os.remove(spec_file)
-            print(f"  Removed {spec_file}")
+    # Clean spec files in root (from old location)
+    root_spec = Path('ewexport.spec')
+    if root_spec.exists():
+        root_spec.unlink()
+        print(f"  Removed old {root_spec}")
 
 def build_with_spec():
     """Build using the clean spec file"""
-    project_root = Path(__file__).parent
+    build_script_dir = Path(__file__).parent
+    project_root = build_script_dir.parent
     os.chdir(project_root)
     
-    spec_file = 'ewexport_clean.spec'
-    if not Path(spec_file).exists():
+    spec_file = build_script_dir / 'ewexport.spec'
+    if not spec_file.exists():
         print(f"ERROR: {spec_file} not found!")
         return False
     

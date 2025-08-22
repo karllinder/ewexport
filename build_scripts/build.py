@@ -21,19 +21,21 @@ def clean_build_dirs():
                 print("Make sure the executable is not running and try again.")
     
     # Clean .spec file if exists
-    if os.path.exists('ewexport.spec'):
-        os.remove('ewexport.spec')
+    spec_file = Path('ewexport.spec')
+    if spec_file.exists():
+        spec_file.unlink()
         print("Removed old spec file")
 
 def build_executable():
     """Build the executable using PyInstaller"""
     
     # Ensure we're in the project root
-    project_root = Path(__file__).parent
+    build_script_dir = Path(__file__).parent
+    project_root = build_script_dir.parent
     os.chdir(project_root)
     
     # Check if version file exists
-    version_file = Path('version_info.py')
+    version_file = build_script_dir / 'version_info.py'
     
     # PyInstaller command with options
     pyinstaller_args = [
@@ -46,7 +48,7 @@ def build_executable():
         '--noupx',             # Don't use UPX compression (reduces false positives)
         
         # Add version information for Windows
-        '--version-file=version_info.py' if version_file.exists() else None,
+        f'--version-file={version_file}' if version_file.exists() else None,
         
         # Add data files (use semicolon on Windows, colon on Unix)
         '--add-data=config;config',
@@ -137,7 +139,7 @@ VSVersionInfo(
 )
 """
     
-    with open('version_info.txt', 'w') as f:
+    with open('dist/version_info.txt', 'w') as f:
         f.write(version_content)
     print("Created version info file")
 

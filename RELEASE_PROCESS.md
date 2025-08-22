@@ -32,7 +32,7 @@ Use the comprehensive build and release script:
 # 1. Update version in setup.py and CHANGELOG.md
 # 2. Commit changes and push to main
 # 3. Run the build and release script (Windows-safe version)
-python build_and_release_safe.py
+python build_scripts/build_and_release_safe.py
 ```
 
 **Note**: Use the `_safe.py` versions of scripts on Windows to avoid Unicode encoding issues.
@@ -53,7 +53,7 @@ If you prefer more control over the process:
 #### Step 1: Build Executable
 ```powershell
 # Clean build with antivirus mitigation
-python build_clean.py
+python build_scripts/build_clean.py
 ```
 
 #### Step 2: Create Release Tag
@@ -73,7 +73,7 @@ The GitHub Actions workflow will create a **draft release** automatically.
 #### Step 3: Upload Executable
 ```powershell
 # Upload to existing release (Windows-safe version)
-python upload_release_safe.py
+python build_scripts/upload_release_safe.py
 ```
 
 #### Step 4: Publish Release
@@ -86,7 +86,7 @@ python upload_release_safe.py
 
 If scripts don't work:
 
-1. **Build locally**: `python build_clean.py`
+1. **Build locally**: `python build_scripts/build_clean.py`
 2. **Create tag**: Push version tag to trigger draft release
 3. **Manual upload**: 
    - Go to GitHub releases
@@ -154,7 +154,7 @@ gh repo view karllinder/ewexport
 ```powershell
 # Clean everything
 rmdir /s build dist __pycache__
-python build_clean.py
+python build_scripts/build_clean.py
 ```
 
 ### Permission Issues
@@ -168,7 +168,7 @@ After successful build:
 ```
 dist/
 ├── ewexport.exe          # Main executable
-└── release_info.json     # Build information (if using build_and_release.py)
+└── release_info.json     # Build information (if using build_scripts/build_and_release.py)
 ```
 
 ## Release Checklist
@@ -181,7 +181,7 @@ dist/
 
 ### Build
 - [ ] Clean build environment
-- [ ] Run `python build_clean.py`
+- [ ] Run `python build_scripts/build_clean.py`
 - [ ] Verify executable works
 - [ ] Calculate SHA256 hash
 

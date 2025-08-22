@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Windows-Safe Local Build and Release Script for EWExport
+Local Build and Release Script for EWExport
 Builds the executable locally and uploads to GitHub release
 """
 
@@ -16,13 +16,20 @@ from datetime import datetime
 
 # Fix Windows console encoding issues
 if sys.platform == 'win32':
+    # Set environment variables to use UTF-8
     os.environ['PYTHONIOENCODING'] = 'utf-8'
+    # Try to set console to UTF-8 if possible
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except:
+        pass
 
 def get_version():
     """Get version from setup.py"""
     setup_py = Path('setup.py')
     if setup_py.exists():
-        with open(setup_py, 'r', encoding='utf-8') as f:
+        with open(setup_py, 'r') as f:
             content = f.read()
             for line in content.split('\n'):
                 if 'VERSION = ' in line:
@@ -54,39 +61,89 @@ def clean_build_environment():
 
 def build_executable():
     """Build the executable using clean configuration"""
-    print("[BUILD] Building executable...")
+    print("🔨 Building executable...")
+    
+    # Use clean build script
+    build_script = Path(__file__).parent / 'build_clean.py'
     
     try:
         result = subprocess.run([
-            sys.executable, 'build_clean.py'
-        ], check=True, text=True, encoding='utf-8', errors='replace')
+            sys.executable, str(build_script)
+        ], check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
         
-        print("   [OK] Build completed successfully")
+        print("   Build completed successfully")
         return True
         
     except subprocess.CalledProcessError as e:
-        print(f"   [ERROR] Build failed: {e}")
+        print(f"   Build failed: {e}")
+        if e.stdout:
+            print(f"   stdout: {e.stdout}")
+        if e.stderr:
+            print(f"   stderr: {e.stderr}")
         return False
     except FileNotFoundError:
-        print("   [ERROR] build_clean.py not found")
+        print(f"   ❌ {build_script} not found")
         return False
 
 def verify_executable():
     """Verify the built executable"""
     exe_path = Path('dist/ewexport.exe')
     if not exe_path.exists():
-        print("   [ERROR] Executable not found!")
-        return False, None
+        print("   ❌ Executable not found!")
+        return False
     
     size_mb = exe_path.stat().st_size / (1024 * 1024)
     sha256 = calculate_sha256(exe_path)
     
-    print(f"   [INFO] File: {exe_path}")
-    print(f"   [INFO] Size: {size_mb:.2f} MB")
-    print(f"   [INFO] SHA256: {sha256}")
+    print(f"   📁 File: {exe_path}")
+    print(f"   📏 Size: {size_mb:.2f} MB")
+    print(f"   🔒 SHA256: {sha256}")
     
-    print("   [OK] Executable verification passed")
+    # Test if executable runs
+    try:
+        result = subprocess.run([str(exe_path), '--version'], 
+                              capture_output=True, text=True, timeout=10)
+        if result.returncode == 0 or 'ewexport' in result.stderr.lower():
+            print("   ✅ Executable verification passed")
+            return True, sha256
+    except:
+        pass
+    
+    print("   ⚠️  Executable built but version check failed (this may be normal)")
     return True, sha256
+
+def create_release_notes(version):
+    """Extract release notes from CHANGELOG.md"""
+    changelog = Path('CHANGELOG.md')
+    if not changelog.exists():
+        return f"Release {version}"
+    
+    try:
+        with open(changelog, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Find the section for this version
+        lines = content.split('\n')
+        in_section = False
+        notes = []
+        
+        for line in lines:
+            if line.startswith(f'## [{version}]') or line.startswith(f'## {version}'):
+                in_section = True
+                continue
+            elif line.startswith('## ') and in_section:
+                break
+            elif in_section:
+                notes.append(line)
+        
+        if notes:
+            return '\n'.join(notes).strip()
+        else:
+            return f"Release {version}"
+            
+    except Exception as e:
+        print(f"   ⚠️  Could not extract release notes: {e}")
+        return f"Release {version}"
 
 def create_release_info(version, sha256):
     """Create release information file"""
@@ -97,31 +154,31 @@ def create_release_info(version, sha256):
         "sha256": sha256,
         "antivirus_notes": "Built with antivirus-friendly configuration. See ANTIVIRUS.md for details.",
         "python_version": sys.version,
-        "build_script": "build_clean.py"
+        "build_script": "build_scripts/build_clean.py"
     }
     
     info_file = Path('dist/release_info.json')
     with open(info_file, 'w', encoding='utf-8') as f:
         json.dump(release_info, f, indent=2)
     
-    print(f"   [INFO] Created release info: {info_file}")
+    print(f"   📋 Created release info: {info_file}")
     return info_file
 
 def check_github_cli():
     """Check if GitHub CLI is available"""
     try:
-        subprocess.run(['gh', '--version'], 
-                      capture_output=True, text=True, check=True)
-        print("   [OK] GitHub CLI available")
+        result = subprocess.run(['gh', '--version'], 
+                              capture_output=True, text=True, check=True)
+        print("   ✅ GitHub CLI available")
         return True
     except (subprocess.CalledProcessError, FileNotFoundError):
-        print("   [ERROR] GitHub CLI not found")
-        print("   [INFO] Install from: https://cli.github.com/")
+        print("   ❌ GitHub CLI not found")
+        print("   📥 Install from: https://cli.github.com/")
         return False
 
 def create_github_release(version, sha256):
     """Create GitHub release and upload executable"""
-    print("[RELEASE] Creating GitHub release...")
+    print("🚀 Creating GitHub release...")
     
     if not check_github_cli():
         return False
@@ -131,8 +188,9 @@ def create_github_release(version, sha256):
         result = subprocess.run(['gh', 'release', 'view', f'v{version}'], 
                               capture_output=True, text=True)
         if result.returncode == 0:
-            print(f"   [WARNING] Release v{version} already exists")
+            print(f"   ⚠️  Release v{version} already exists")
             
+            # Ask if user wants to update
             response = input("   Do you want to upload to existing release? (y/n): ")
             if response.lower() != 'y':
                 return False
@@ -146,72 +204,80 @@ def create_github_release(version, sha256):
                     '--clobber'  # Overwrite existing files
                 ], check=True)
                 
-                print("   [OK] Files uploaded to existing release")
+                print("   ✅ Files uploaded to existing release")
                 return True
                 
             except subprocess.CalledProcessError as e:
-                print(f"   [ERROR] Upload failed: {e}")
+                print(f"   ❌ Upload failed: {e}")
                 return False
     except:
         pass  # Release doesn't exist, continue to create it
     
-    # Create release notes with SHA256
-    release_notes = f"""## Manual Release System & Build Improvements
+    # Create new release
+    release_notes = create_release_notes(version)
+    
+    # Add SHA256 to release notes
+    enhanced_notes = f"""{release_notes}
 
-### Download & Security
-- **ewexport.exe**: Windows executable ({Path('dist/ewexport.exe').stat().st_size / (1024 * 1024):.2f} MB)
+## 🔒 File Verification
 - **SHA256**: `{sha256}`
+- **Size**: {Path('dist/ewexport.exe').stat().st_size / (1024 * 1024):.2f} MB
+- **Build**: Local build with antivirus-friendly configuration
 
-### Antivirus Information
-This executable is built locally with antivirus-friendly settings.
+## 🛡️ Antivirus Information
+This executable is built with optimized settings to reduce false positives. If your antivirus flags this file:
 
-If your antivirus flags this file:
-1. Verify the SHA256 hash matches the one above
-2. Add an exception for ewexport.exe
-3. See ANTIVIRUS.md for detailed guidance
+1. **Verify the SHA256 hash** matches the one above
+2. **Add an exception** for ewexport.exe in your antivirus
+3. **Check ANTIVIRUS.md** in the repository for detailed guidance
+4. **Report false positives** to your antivirus vendor
 
-See CHANGELOG.md for complete technical details."""
+## 📥 Installation
+1. Download `ewexport.exe`
+2. Run directly - no installation needed
+3. See `INSTALL.md` for detailed instructions
+"""
     
     try:
         # Create release
         subprocess.run([
             'gh', 'release', 'create', f'v{version}',
             '--title', f'Release v{version}',
-            '--notes', release_notes,
+            '--notes', enhanced_notes,
             'dist/ewexport.exe',
             'dist/release_info.json'
         ], check=True)
         
-        print(f"   [OK] Release v{version} created successfully")
-        print(f"   [INFO] View at: https://github.com/karllinder/ewexport/releases/tag/v{version}")
+        print(f"   ✅ Release v{version} created successfully")
+        print(f"   🌐 View at: https://github.com/karllinder/ewexport/releases/tag/v{version}")
         return True
         
     except subprocess.CalledProcessError as e:
-        print(f"   [ERROR] Release creation failed: {e}")
+        print(f"   ❌ Release creation failed: {e}")
         return False
 
 def main():
     """Main build and release process"""
     print("=" * 60)
-    print("EWExport Local Build and Release (Windows Safe)")
+    print("EWExport Local Build and Release")
     print("=" * 60)
     
     # Get version
     version = get_version()
-    print(f"[INFO] Building version: {version}")
+    print(f"📦 Building version: {version}")
     
     # Step 1: Clean environment
     clean_build_environment()
     
     # Step 2: Build executable
     if not build_executable():
-        print("[ERROR] Build failed - aborting")
+        print("❌ Build failed - aborting")
         return False
     
     # Step 3: Verify executable
     success, sha256 = verify_executable()
     if not success:
-        print("[ERROR] Executable verification failed - aborting")
+        print("❌ Executable verification failed - aborting")
         return False
     
     # Step 4: Create release info
@@ -219,34 +285,31 @@ def main():
     
     # Step 5: Ask about GitHub release
     print("\n" + "=" * 60)
-    print("[RELEASE] Ready to create GitHub release")
+    print("📤 Ready to create GitHub release")
     print("=" * 60)
     
     response = input(f"Create GitHub release for v{version}? (y/n): ")
     if response.lower() == 'y':
         if create_github_release(version, sha256):
-            print("\n[SUCCESS] Release created and executable uploaded.")
+            print("\n🎉 Success! Release created and executable uploaded.")
         else:
-            print("\n[ERROR] Release creation failed.")
-            print("[INFO] You can manually upload dist/ewexport.exe to GitHub releases")
+            print("\n❌ Release creation failed.")
+            print("💡 You can manually upload dist/ewexport.exe to GitHub releases")
     else:
-        print("\n[INFO] Build complete! Files ready in dist/ folder:")
+        print("\n📁 Build complete! Files ready in dist/ folder:")
         print("   - dist/ewexport.exe")
         print("   - dist/release_info.json")
-        print("\n[INFO] You can manually upload these to GitHub releases")
+        print("\n💡 You can manually upload these to GitHub releases")
     
     print("\n" + "=" * 60)
-    print("[COMPLETE] Build process complete")
+    print("🏁 Build process complete")
     print("=" * 60)
-    return True
 
 if __name__ == "__main__":
     try:
-        success = main()
-        sys.exit(0 if success else 1)
+        main()
     except KeyboardInterrupt:
-        print("\n\n[CANCELLED] Build cancelled by user")
-        sys.exit(1)
+        print("\n\n❌ Build cancelled by user")
     except Exception as e:
-        print(f"\n\n[ERROR] Unexpected error: {e}")
+        print(f"\n\n❌ Unexpected error: {e}")
         sys.exit(1)
