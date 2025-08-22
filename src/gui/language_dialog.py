@@ -160,9 +160,9 @@ class LanguageDialog:
         target_combo.grid(row=1, column=0, sticky="w")
         target_combo.bind('<<ComboboxSelected>>', self._on_target_changed)
         
-        # Auto-populate button
-        self.auto_button = ttk.Button(target_frame, text="Auto-populate Mappings",
-                                     command=self._auto_populate)
+        # Load default mappings button
+        self.auto_button = ttk.Button(target_frame, text="Load Default Mappings",
+                                     command=self._load_default_mappings)
         self.auto_button.grid(row=1, column=1, sticky="w", padx=(20, 0))
         
         # Note about non-English targets
@@ -203,14 +203,14 @@ class LanguageDialog:
         target = self.target_var.get()
         is_english = target == 'english'
         
-        # Enable/disable auto-populate button
+        # Enable/disable load default mappings button
         if is_english:
             self.auto_button.config(state='normal')
         else:
             self.auto_button.config(state='disabled')
             
-    def _auto_populate(self):
-        """Auto-populate mappings for English target"""
+    def _load_default_mappings(self):
+        """Load default mappings for English target"""
         try:
             # Get selected source languages
             selected_sources = [lang for lang, var in self.source_vars.items() if var.get()]
@@ -220,23 +220,66 @@ class LanguageDialog:
                                      "Please select at least one source language first.")
                 return
                 
+            # Check if mappings already exist
+            existing_mappings = self._get_existing_mappings()
+            if existing_mappings:
+                result = messagebox.askyesno("Existing Mappings Found",
+                                           f"Found {len(existing_mappings)} existing section mappings.\n\n"
+                                           "Loading default mappings will overwrite these existing mappings.\n\n"
+                                           "Do you want to continue?")
+                if not result:
+                    return
+                
             # Update language manager
             self.language_manager.set_source_languages(selected_sources)
             self.language_manager.set_target_language('english')
             
-            # Auto-populate
+            # Load default mappings
             mappings = self.language_manager.auto_populate_mappings()
             
             if mappings:
-                messagebox.showinfo("Mappings Updated", 
-                                  f"Auto-populated {len(mappings)} section mappings.")
+                messagebox.showinfo("Default Mappings Loaded", 
+                                  f"Loaded {len(mappings)} default section mappings for selected languages.\n\n"
+                                  f"Languages: {', '.join(selected_sources)}")
             else:
                 messagebox.showinfo("No Mappings", 
-                                  "No mappings could be auto-populated.")
+                                  "No default mappings could be loaded.")
                                   
         except Exception as e:
-            logger.error(f"Error auto-populating mappings: {e}")
-            messagebox.showerror("Error", f"Failed to auto-populate mappings: {e}")
+            logger.error(f"Error loading default mappings: {e}")
+            messagebox.showerror("Error", f"Failed to load default mappings: {e}")
+    
+    def _get_existing_mappings(self):
+        """Get existing section mappings from config"""
+        try:
+            if not self.config_manager:
+                return {}
+                
+            # Check current language manager mappings
+            current_mappings = getattr(self.language_manager, 'active_mappings', {})
+            if current_mappings:
+                return current_mappings
+                
+            # Check config file for existing section mappings
+            import json
+            from pathlib import Path
+            import os
+            
+            # Get section mappings file path
+            app_data = os.environ.get('APPDATA', Path.home() / 'AppData' / 'Roaming')
+            app_dir = Path(app_data) / 'EWExport'
+            mappings_file = app_dir / "section_mappings.json"
+            
+            if mappings_file.exists():
+                with open(mappings_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    return data.get('section_mappings', {})
+                    
+            return {}
+            
+        except Exception as e:
+            logger.error(f"Error getting existing mappings: {e}")
+            return {}
             
     def _open_mappings_editor(self):
         """Open the section mappings editor"""
@@ -314,7 +357,7 @@ class LanguageDialog:
         self.language_manager.set_source_languages(selected_sources)
         self.language_manager.set_target_language(target)
         
-        # Auto-populate for English targets
+        # Load default mappings for English targets
         if target == 'english':
             self.language_manager.auto_populate_mappings()
             
