@@ -44,7 +44,7 @@ jobs:
           echo "If your antivirus flags the executable:" >> release_notes.txt
           echo "1. Verify the SHA256 hash in release_info.json" >> release_notes.txt
           echo "2. Add an exception for ewexport.exe" >> release_notes.txt
-          echo "3. See [ANTIVIRUS.md](https://github.com/karllinder/ewexport/blob/main/ANTIVIRUS.md) for detailed guidance" >> release_notes.txt
+          echo "3. See the project README for antivirus guidance" >> release_notes.txt
         else
           echo "Release ${{ steps.get_version.outputs.VERSION }}" > release_notes.txt
           echo "" >> release_notes.txt
@@ -58,8 +58,6 @@ jobs:
         body_path: release_notes.txt
         draft: true  # Create as draft for manual upload
         prerelease: false
-        files: |
-          ANTIVIRUS.md
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
@@ -68,7 +66,7 @@ jobs:
         echo "🎉 Draft release created: ${{ steps.get_version.outputs.VERSION }}"
         echo ""
         echo "📝 Next steps:"
-        echo "1. Run: python build_and_release.py"
+        echo "1. Run: python build_scripts/build_and_release.py"
         echo "2. Upload ewexport.exe to the draft release"
         echo "3. Publish the release"
         echo ""

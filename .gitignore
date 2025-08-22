@@ -35,6 +35,7 @@ env/
 # PyInstaller
 *.manifest
 *.spec
+!build_scripts/*.spec
 
 # IDE
 .vscode/
@@ -52,6 +53,10 @@ output/
 *.pro6x
 *.pro6plx
 *.log
+
+# Test and debug outputs
+test_exports/
+debug_export_test/
 
 # Test coverage
 htmlcov/

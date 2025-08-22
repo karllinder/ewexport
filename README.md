@@ -105,7 +105,10 @@ The search bar allows you to:
 
 The executable includes Python and all dependencies. Nothing else needed!
 
-**Note**: Some antivirus software may flag the executable as a false positive. This is common with PyInstaller apps. See [ANTIVIRUS.md](ANTIVIRUS.md) for details and solutions.
+**Note**: Some antivirus software may flag the executable as a false positive. This is common with PyInstaller apps. If you encounter this:
+1. Verify the SHA256 hash from the release page
+2. Add an exception for ewexport.exe in your antivirus
+3. Report it as a false positive to your antivirus vendor
 
 ### Option 2: Automated Installation
 See [INSTALL.md](INSTALL.md) for detailed installation instructions including automated setup script.
@@ -186,7 +189,7 @@ build.bat
 pip install pyinstaller
 
 # Run build script
-python build.py
+python build_scripts/build.py
 ```
 
 The executable will be created in the `dist` folder.
