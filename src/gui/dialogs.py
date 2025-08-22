@@ -571,7 +571,7 @@ def show_section_mappings_dialog(parent, config_manager, language_manager=None):
     """
     try:
         # Import here to avoid circular imports
-        from gui.settings_window import SettingsWindow
+        from src.gui.settings_window import SettingsWindow
         
         # Create settings window for section mappings
         settings_window = SettingsWindow(parent)

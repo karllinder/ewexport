@@ -247,7 +247,7 @@ class MainWindow:
         """Open the language settings dialog"""
         try:
             # Import here to avoid circular imports
-            from gui.language_dialog import show_language_settings_dialog
+            from src.gui.language_dialog import show_language_settings_dialog
             
             # Get current language settings
             current_settings = self.config.get_language_settings()
@@ -921,7 +921,7 @@ GitHub: https://github.com/karllinder/ewexport"""
         """Set up languages during first run"""
         try:
             # Import here to avoid circular imports
-            from gui.language_dialog import show_language_settings_dialog
+            from src.gui.language_dialog import show_language_settings_dialog
             
             # Show instruction dialog
             result = messagebox.showinfo(

@@ -285,7 +285,7 @@ class LanguageDialog:
         """Open the section mappings editor"""
         try:
             # Import here to avoid circular imports
-            from gui.dialogs import show_section_mappings_dialog
+            from src.gui.dialogs import show_section_mappings_dialog
             
             # Get current settings
             selected_sources = [lang for lang, var in self.source_vars.items() if var.get()]
