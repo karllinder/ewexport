@@ -557,4 +557,35 @@ class ExportOptionsDialog:
         elif response is False:  # No - close without saving
             self.result = 'cancelled'
             self.dialog.destroy()
-        # If None (Cancel), do nothing - keep dialog open
+
+
+def show_section_mappings_dialog(parent, config_manager, language_manager=None):
+    """
+    Show the section mappings dialog
+    This is a placeholder that will integrate with the existing SettingsWindow
+    
+    Args:
+        parent: Parent window
+        config_manager: ConfigManager instance  
+        language_manager: LanguageManager instance (for target language context)
+    """
+    try:
+        # Import here to avoid circular imports
+        from gui.settings_window import SettingsWindow
+        
+        # Create settings window for section mappings
+        settings_window = SettingsWindow(parent)
+        
+        # If we have a language manager with non-English target, 
+        # we could customize the editor here in the future
+        if language_manager and language_manager.target_language != 'english':
+            # Future enhancement: customize for target language
+            pass
+            
+        # Settings window handles its own modal behavior
+        return True
+        
+    except Exception as e:
+        from tkinter import messagebox
+        messagebox.showerror("Error", f"Failed to open section mappings editor: {e}")
+        return False
