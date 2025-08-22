@@ -2,10 +2,10 @@
 
 
 a = Analysis(
-    ['src\\main.py'],
+    ['..\\src\\main.py'],
     pathex=[],
     binaries=[],
-    datas=[('config', 'config')],
+    datas=[('..\\config', 'config')],
     hiddenimports=['tkinter', 'striprtf', 'packaging'],
     hookspath=[],
     hooksconfig={},
