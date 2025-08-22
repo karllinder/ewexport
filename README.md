@@ -65,19 +65,6 @@ The search bar allows you to:
 
 ## Development Progress
 
-### 🚀 Latest Updates (v1.1.2)
-- ✅ Complete settings persistence (window state, paths, preferences)
-- ✅ Enhanced Export Options dialog with font and formatting controls
-- ✅ Duplicate file detection with user-friendly handling
-- ✅ Windows system font integration
-- ✅ Configurable line breaking and slide formatting
-- ✅ Improved first-run experience
-
-### 🔧 Upcoming Features
-- Preview functionality before export
-- Edit text before export option
-
-
 ### 🔮 Future Enhancements
 - Multi-language support (German, French, Spanish)
 - Advanced search
@@ -103,7 +90,6 @@ The search bar allows you to:
 2. Download `ewexport.exe` 
 3. Run it from anywhere - it's completely standalone!
 
-The executable includes Python and all dependencies. Nothing else needed!
 
 **Note**: Some antivirus software may flag the executable as a false positive. This is common with PyInstaller apps. If you encounter this:
 1. Verify the SHA256 hash from the release page
@@ -161,52 +147,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### MIT License Summary
 
-This software is provided free of charge with the following permissions:
-- ✅ Commercial use
-- ✅ Modification
-- ✅ Distribution
-- ✅ Private use
+This software is provided free of charge.
 
 The only requirements are:
 - Include the original copyright notice
 - Include the license text
 
 The software is provided "as is", without warranty of any kind.
-
-## Building from Source
-
-### Creating the Executable
-
-#### Quick Build (Windows)
-Simply run:
-```batch
-build.bat
-```
-
-#### Manual Build
-```bash
-# Install PyInstaller
-pip install pyinstaller
-
-# Run build script
-python build_scripts/build.py
-```
-
-The executable will be created in the `dist` folder.
-
-### Automated Releases
-
-This project uses GitHub Actions for automated builds. When you push a version tag, it automatically:
-1. Builds the Windows executable
-2. Creates a GitHub release
-3. Uploads the executable as a release asset
-
-To create a new release:
-```bash
-git tag v1.1.3
-git push origin v1.1.3
-```
-
-## Support
-
-Report issues at: [GitHub Issues](https://github.com/karllinder/ewexport/issues)
