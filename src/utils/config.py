@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class ConfigManager:
     """Manages application settings with version tracking and migration support"""
     
-    CURRENT_VERSION = "1.2.0"  # Version of the settings schema
+    CURRENT_VERSION = "2.0.0"  # Version of the settings schema - Multi-language support
     
     def __init__(self):
         """Initialize configuration manager"""
@@ -48,6 +48,11 @@ class ConfigManager:
         """Get default settings structure"""
         return {
             "version": self.CURRENT_VERSION,
+            "language_settings": {
+                "source_languages": ["swedish", "english"],  # Default to Swedish and English
+                "target_language": "english",
+                "auto_populate_mappings": True
+            },
             "app": {
                 "last_update_check": None,
                 "theme": "default",
@@ -136,6 +141,8 @@ class ConfigManager:
                 file_version = loaded_settings.get('version', '1.0.0')
                 if file_version != self.CURRENT_VERSION:
                     logger.info(f"Migrating settings from version {file_version} to {self.CURRENT_VERSION}")
+                    # Create backup before migration
+                    self._backup_settings(loaded_settings)
                     loaded_settings = self._migrate_settings(loaded_settings, file_version)
                 
                 # Merge with defaults to ensure all keys exist
@@ -172,12 +179,35 @@ class ConfigManager:
             logger.error(f"Error saving settings: {e}")
             return False
     
+    def _backup_settings(self, settings: Dict[str, Any]) -> bool:
+        """Create a backup of settings before migration"""
+        try:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            version = settings.get('version', 'unknown')
+            backup_file = self.app_data_dir / f"settings_backup_{version}_{timestamp}.json"
+            
+            with open(backup_file, 'w', encoding='utf-8') as f:
+                json.dump(settings, f, indent=2, ensure_ascii=False)
+            
+            logger.info(f"Settings backup created: {backup_file}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to create settings backup: {e}")
+            return False
+    
     def _migrate_settings(self, old_settings: Dict[str, Any], from_version: str) -> Dict[str, Any]:
         """Migrate settings from an older version to current version"""
         migrated = old_settings.copy()
         
-        # Version-specific migrations
-        if from_version == "1.0.0":
+        # Convert version string to comparable format
+        def version_tuple(v):
+            return tuple(map(int, v.split('.')))
+        
+        current_v = version_tuple(self.CURRENT_VERSION)
+        from_v = version_tuple(from_version)
+        
+        # Progressive migrations
+        if from_v < (1, 1, 0):
             # Migration from 1.0.0 to 1.1.0
             # Add new export options if they don't exist
             if 'export' not in migrated:
@@ -195,9 +225,23 @@ class ConfigManager:
             if 'duplicate_handling' not in migrated:
                 migrated['duplicate_handling'] = self.default_settings['duplicate_handling'].copy()
         
-        # Future migrations would go here
-        # elif from_version == "1.1.0":
-        #     # Migration from 1.1.0 to 1.2.0
+        if from_v < (2, 0, 0):
+            # Migration to 2.0.0 - Add language settings
+            logger.info("Migrating to v2.0.0: Adding language support")
+            
+            # Add language settings
+            migrated['language_settings'] = {
+                'source_languages': ['swedish', 'english'],  # Default assumption
+                'target_language': 'english',
+                'auto_populate_mappings': True
+            }
+            
+            # If there are existing section mappings, preserve them
+            # (They will be in the separate section_mappings.json file)
+            logger.info("Language settings added for multi-language support")
+        
+        # Update version
+        migrated['version'] = self.CURRENT_VERSION
         
         return migrated
     
@@ -245,6 +289,18 @@ class ConfigManager:
             return self.save_settings()
         
         return True
+    
+    def get_language_settings(self) -> Dict[str, Any]:
+        """Get language settings"""
+        return self.get('language_settings', {
+            'source_languages': ['swedish', 'english'],
+            'target_language': 'english',
+            'auto_populate_mappings': True
+        })
+    
+    def set_language_settings(self, settings: Dict[str, Any]) -> bool:
+        """Set language settings"""
+        return self.set('language_settings', settings)
     
     def get_recent_databases(self) -> list:
         """Get list of recently used database paths"""
