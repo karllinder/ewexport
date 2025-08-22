@@ -1,7 +1,7 @@
 # Sprint 9: Multi-Language Support Implementation Plan
 
 ## Overview
-This sprint adds comprehensive multi-language support for section name mappings, allowing users to work with songs in German, French, Spanish, Norwegian, Danish, and other languages beyond the current Swedish/English support.
+This sprint adds comprehensive multi-language support for section name mappings, allowing users to work with songs in German, French, Spanish, Norwegian, Danish, and other languages. Users can select both source (FROM) languages and target (TO) language for export, with integration into the existing section mappings editor.
 
 ## Key Design Decisions
 
@@ -16,7 +16,18 @@ This sprint adds comprehensive multi-language support for section name mappings,
 - Auto-detection would be unreliable with mixed languages
 - Manual selection provides predictable, consistent results
 
-### 2. Settings Architecture
+### 2. Target (TO) Language Selection
+**Decision: Configurable Export Target Language**
+- Users can select target language for export (default: English)
+- When non-English target selected, users must manually configure mappings
+- Integrates with existing section mappings editor
+
+**Rationale:**
+- Some churches may want to export to languages other than English
+- Manual mapping ensures accuracy for non-standard targets
+- Leverages existing mapping editor functionality
+
+### 3. Settings Architecture
 
 #### A. Embedded Default Mappings
 Since we distribute a single EXE file, default language mappings will be embedded in the code:
@@ -61,6 +72,14 @@ DEFAULT_LANGUAGE_MAPPINGS = {
         "bro": "Bridge"
     }
 }
+
+# Target language section names (for non-English targets)
+TARGET_LANGUAGE_SECTIONS = {
+    "english": ["Verse", "Chorus", "Bridge", "Pre-Chorus", "Intro", "Outro", "Tag"],
+    "german": ["Strophe", "Refrain", "Brücke", "Vorrefrain", "Intro", "Outro", "Tag"],
+    "french": ["Couplet", "Refrain", "Pont", "Pré-refrain", "Intro", "Outro", "Tag"],
+    "spanish": ["Verso", "Coro", "Puente", "Pre-coro", "Intro", "Outro", "Tag"]
+}
 ```
 
 #### B. Settings File Structure (v2.0.0)
@@ -68,13 +87,12 @@ DEFAULT_LANGUAGE_MAPPINGS = {
 {
   "version": "2.0.0",
   "language_settings": {
-    "selected_languages": ["swedish", "english"],
-    "primary_language": "swedish",
-    "custom_mappings_enabled": false
+    "source_languages": ["swedish", "english"],
+    "target_language": "english",
+    "auto_populate_mappings": true
   },
   "section_mappings": {
-    "active_mappings": {},  // Merged from selected languages
-    "custom_mappings": {}   // User-defined overrides
+    "active_mappings": {}  // Populated from source languages or manual entry
   },
   "export_settings": {
     // Existing export settings...
@@ -88,10 +106,11 @@ DEFAULT_LANGUAGE_MAPPINGS = {
 
 **Migration Path:**
 1. Detect old version (1.2.0 or missing version field)
-2. Preserve existing Swedish mappings as custom mappings
-3. Set Swedish as selected language (backward compatibility)
-4. Create new structure with language_settings
-5. Backup old settings before migration
+2. Preserve existing mappings in section_mappings
+3. Set Swedish as source language (backward compatibility)
+4. Set English as target language (default)
+5. Create new structure with language_settings
+6. Backup old settings before migration
 
 **Migration Code Structure:**
 ```python
@@ -105,17 +124,15 @@ def migrate_settings(old_settings):
         new_settings = {
             'version': '2.0.0',
             'language_settings': {
-                'selected_languages': ['swedish', 'english'],
-                'primary_language': 'swedish',
-                'custom_mappings_enabled': True
+                'source_languages': ['swedish', 'english'],
+                'target_language': 'english',
+                'auto_populate_mappings': True
             }
         }
         
-        # Preserve old mappings as custom
+        # Preserve old mappings
         if 'section_mappings' in old_settings:
-            new_settings['section_mappings'] = {
-                'custom_mappings': old_settings['section_mappings']
-            }
+            new_settings['section_mappings'] = old_settings['section_mappings']
         
         # Preserve other settings
         for key in ['export_settings', 'window_geometry']:
@@ -136,21 +153,26 @@ def migrate_settings(old_settings):
 
 2. **Create Language Module**
    - `src/processing/language_manager.py`
-   - Embedded default mappings
-   - Mapping merger logic
-   - Priority resolution (custom > selected languages)
+   - Embedded default mappings for FROM languages
+   - Target language section names
+   - Auto-populate mappings based on selected languages
 
 ### Phase 2: UI Implementation (Day 2-3)
 1. **Language Selection Dialog**
    - New menu item: Edit → Language Settings
-   - Multi-select checkbox list
-   - Primary language dropdown
-   - Preview of active mappings
+   - Source languages: Multi-select checkbox list
+   - Target language: Dropdown (English, German, French, Spanish)
+   - Auto-populate button to fill mappings
 
-2. **First-Run Experience**
+2. **Enhanced Section Mappings Editor**
+   - Show target language section names when non-English selected
+   - Allow manual mapping when target is not English
+   - Clear indication of source → target mapping
+
+3. **First-Run Experience**
    - Detect if no language selected
    - Force language selection before export
-   - Clear instructions and help text
+   - Clear instructions for source and target selection
 
 ### Phase 3: Migration & Testing (Day 3-4)
 1. **Migration Testing**
@@ -160,9 +182,10 @@ def migrate_settings(old_settings):
    - Verify backup creation
 
 2. **Language Testing**
-   - Test each language mapping
-   - Test multi-language selection
-   - Test custom override behavior
+   - Test each source language mapping
+   - Test multi-language source selection
+   - Test different target languages
+   - Test manual mapping for non-English targets
    - Test edge cases (empty mappings, conflicts)
 
 ### Phase 4: Documentation & Polish (Day 4-5)
@@ -190,8 +213,9 @@ class TestSettingsMigration:
         }
         new_settings = migrate_settings(old_settings)
         assert new_settings['version'] == '2.0.0'
-        assert 'swedish' in new_settings['language_settings']['selected_languages']
-        assert new_settings['section_mappings']['custom_mappings']['vers'] == 'Verse'
+        assert 'swedish' in new_settings['language_settings']['source_languages']
+        assert new_settings['language_settings']['target_language'] == 'english'
+        assert new_settings['section_mappings']['vers'] == 'Verse'
     
     def test_migrate_no_version(self):
         """Test migration from settings without version"""
@@ -214,16 +238,20 @@ class TestSettingsMigration:
 ### 2. Language Selection Tests
 ```python
 class TestLanguageSelection:
-    def test_single_language(self):
-        """Test selection of single language"""
+    def test_single_source_language(self):
+        """Test selection of single source language"""
         pass
     
-    def test_multiple_languages(self):
-        """Test merging of multiple language mappings"""
+    def test_multiple_source_languages(self):
+        """Test merging of multiple source language mappings"""
         pass
     
-    def test_custom_override(self):
-        """Test that custom mappings override defaults"""
+    def test_target_language_english(self):
+        """Test default English target language"""
+        pass
+    
+    def test_target_language_non_english(self):
+        """Test non-English target requires manual mapping"""
         pass
     
     def test_no_language_blocks_export(self):
@@ -237,7 +265,7 @@ class TestLanguageSelection:
 ```
 ┌─ Language Settings ─────────────────────────────────┐
 │                                                      │
-│  Select languages in your database:                 │
+│  SOURCE Languages (in your database):               │
 │                                                      │
 │  ☑ Swedish (vers, refräng, brygga)                 │
 │  ☑ English (verse, chorus, bridge)                 │
@@ -247,19 +275,38 @@ class TestLanguageSelection:
 │  ☐ Norwegian (vers, refreng, bro)                  │
 │  ☐ Danish (vers, omkvæd, bro)                      │
 │                                                      │
-│  Primary Language: [Swedish        ▼]               │
+│  TARGET Language (export to):                       │
+│  [English            ▼]                              │
 │                                                      │
-│  ☐ Enable custom mappings                           │
+│  [Auto-populate Mappings]                           │
 │                                                      │
-│  Active Mappings Preview:                           │
-│  ┌────────────────────────────────────┐            │
-│  │ vers → Verse                       │            │
-│  │ refräng → Chorus                   │            │
-│  │ verse → Verse                      │            │
-│  │ chorus → Chorus                    │            │
-│  └────────────────────────────────────┘            │
+│  Note: When target is not English, use the          │
+│  Section Mappings editor to configure mappings.     │
 │                                                      │
-│  [Edit Custom Mappings]  [OK]  [Cancel]             │
+│  [Open Section Mappings Editor]  [OK]  [Cancel]     │
+└──────────────────────────────────────────────────────┘
+```
+
+### Enhanced Section Mappings Editor (when target ≠ English)
+```
+┌─ Section Mappings ──────────────────────────────────┐
+│                                                      │
+│  Target Language: German                            │
+│                                                      │
+│  Source Term    →    Target Term                    │
+│  ──────────────────────────────────────────────────  │
+│  vers           →    [Strophe        ▼]             │
+│  refräng        →    [Refrain        ▼]             │
+│  brygga         →    [Brücke         ▼]             │
+│  verse          →    [Strophe        ▼]             │
+│  chorus         →    [Refrain        ▼]             │
+│  bridge         →    [Brücke         ▼]             │
+│                                                      │
+│  Available German sections:                         │
+│  Strophe, Refrain, Brücke, Vorrefrain,             │
+│  Intro, Outro, Tag                                  │
+│                                                      │
+│  [Save]  [Cancel]                                   │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -273,9 +320,9 @@ class TestLanguageSelection:
 
 ### Risk 2: Language Conflicts
 **Mitigation:**
-- Clear priority system (custom > selected)
-- Show preview of active mappings
-- Warn about duplicate mappings
+- Use existing section mappings editor
+- Clear indication of source vs target
+- Manual control for non-English targets
 
 ### Risk 3: Performance Impact
 **Mitigation:**
@@ -291,9 +338,10 @@ class TestLanguageSelection:
    - Swedish mappings continue to work
 
 2. **Multi-Language Support**
-   - All 6 target languages fully supported
-   - Easy language selection UI
-   - Custom mappings capability retained
+   - All 6 source languages fully supported
+   - Multiple target language options
+   - Integration with existing mapping editor
+   - Manual mapping for non-English targets
 
 3. **Robustness**
    - Settings migration has comprehensive tests
@@ -338,6 +386,12 @@ class TestLanguageSelection:
 
 3. **Q: Where to store default mappings?**
    **A: Embedded in code for single EXE distribution**
+
+4. **Q: How to handle custom mappings?**
+   **A: Use existing section mappings editor, no new custom system**
+
+5. **Q: How to handle non-English target languages?**
+   **A: Manual mapping through section editor with language-specific options**
 
 ## Next Steps
 
