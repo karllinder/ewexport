@@ -42,6 +42,7 @@ class MainWindow:
         self.db = None
         self.exporter = ProPresenter6Exporter(config=self.config)
         self.export_in_progress = False
+        self.export_cancel_event = threading.Event()  # For proper thread cancellation
         self.duplicate_action = None  # For remembering duplicate handling choice
         self.update_checker = UpdateChecker(config=self.config)
         
@@ -475,11 +476,12 @@ GitHub: https://github.com/karllinder/ewexport"""
         
         # Start export in background thread
         self.export_in_progress = True
+        self.export_cancel_event.clear()  # Reset cancel event for new export
         self.export_btn.config(state='disabled')
         self.cancel_btn.config(state='normal')
         self.progress.config(mode='determinate', value=0)
         self.progress_label.config(text="Preparing export...")
-        
+
         self.export_thread = threading.Thread(target=self.export_worker, daemon=True)
         self.export_thread.start()
     
@@ -515,10 +517,11 @@ GitHub: https://github.com/karllinder/ewexport"""
             # Export songs
             output_dir = Path(self.output_path.get())
             successful, failed = self.exporter.export_songs_batch(
-                songs_to_export, 
-                output_dir, 
+                songs_to_export,
+                output_dir,
                 progress_callback=self.update_export_progress,
-                parent_window=self.root
+                parent_window=self.root,
+                cancel_event=self.export_cancel_event
             )
             
             # Update UI in main thread
@@ -548,8 +551,19 @@ GitHub: https://github.com/karllinder/ewexport"""
         self.export_in_progress = False
         self.export_btn.config(state='normal')
         self.cancel_btn.config(state='disabled')
+
+        # Check if export was cancelled
+        was_cancelled = self.export_cancel_event.is_set()
+        if was_cancelled:
+            self.progress.config(value=0)
+            self.progress_label.config(text="Export cancelled")
+            success_count = len(successful)
+            messagebox.showinfo("Export Cancelled",
+                              f"Export was cancelled.\n\n{success_count} song{'s were' if success_count != 1 else ' was'} exported before cancellation.")
+            return
+
         self.progress.config(value=100)
-        
+
         # Show results
         success_count = len(successful)
         fail_count = len(failed)
@@ -593,14 +607,13 @@ GitHub: https://github.com/karllinder/ewexport"""
     def cancel_export(self):
         """Cancel the export process"""
         if self.export_in_progress:
-            # Note: This is a simple cancellation - doesn't actually stop the thread
-            # For a more robust solution, we'd need to implement proper thread cancellation
+            # Signal the export thread to stop
+            self.export_cancel_event.set()
             self.export_in_progress = False
             self.export_btn.config(state='normal')
             self.cancel_btn.config(state='disabled')
-            self.progress.config(value=0)
-            self.progress_label.config(text="Export cancelled")
-            messagebox.showinfo("Export Cancelled", "Export operation was cancelled.")
+            self.progress_label.config(text="Cancelling export...")
+            # Note: The export thread will check the cancel event and stop gracefully
     
     def on_search_changed(self, *args):
         """Handle search text changes for real-time filtering"""
