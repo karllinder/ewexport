@@ -577,10 +577,19 @@ class ProPresenter6Exporter:
             logger.error(error_msg, exc_info=True)
             return False, error_msg
     
-    def export_songs_batch(self, songs_with_sections: List[Tuple[Dict[str, Any], List[Dict[str, str]]]], 
-                          output_path: Path, progress_callback=None, parent_window=None) -> Tuple[List[str], List[str]]:
-        """Export multiple songs with progress tracking and duplicate handling"""
-        
+    def export_songs_batch(self, songs_with_sections: List[Tuple[Dict[str, Any], List[Dict[str, str]]]],
+                          output_path: Path, progress_callback=None, parent_window=None,
+                          cancel_event=None) -> Tuple[List[str], List[str]]:
+        """Export multiple songs with progress tracking, duplicate handling, and cancellation support
+
+        Args:
+            songs_with_sections: List of tuples (song_data, sections)
+            output_path: Directory to export files to
+            progress_callback: Optional callback for progress updates
+            parent_window: Parent window for dialogs
+            cancel_event: Optional threading.Event to signal cancellation
+        """
+
         successful_exports = []
         failed_exports = []
         total_songs = len(songs_with_sections)
@@ -601,6 +610,12 @@ class ProPresenter6Exporter:
         self.duplicate_action = None
         
         for i, (song_data, sections) in enumerate(songs_with_sections):
+            # Check for cancellation before processing each song
+            if cancel_event and cancel_event.is_set():
+                logger.info(f"Export cancelled by user at song {i+1}/{total_songs}")
+                failed_exports.append("Export cancelled by user")
+                break
+
             try:
                 # Update progress
                 if progress_callback:
