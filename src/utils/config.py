@@ -8,13 +8,14 @@ from pathlib import Path
 from typing import Dict, Any, Optional, Tuple
 import logging
 from datetime import datetime
+from src.version import SETTINGS_SCHEMA_VERSION
 
 logger = logging.getLogger(__name__)
 
 class ConfigManager:
     """Manages application settings with version tracking and migration support"""
-    
-    CURRENT_VERSION = "1.2.0"  # Version of the settings schema
+
+    CURRENT_VERSION = SETTINGS_SCHEMA_VERSION  # Imported from centralized version module
     
     def __init__(self):
         """Initialize configuration manager"""

@@ -10,11 +10,12 @@ import os
 from pathlib import Path
 from typing import Dict, Any, Optional
 import shutil
+from src.version import SECTION_MAPPINGS_SCHEMA_VERSION
 
 logger = logging.getLogger(__name__)
 
 class SettingsWindow:
-    CURRENT_VERSION = "1.2.0"  # Version of the section mappings schema
+    CURRENT_VERSION = SECTION_MAPPINGS_SCHEMA_VERSION  # Imported from centralized version module
     
     def __init__(self, parent_window=None):
         self.parent = parent_window

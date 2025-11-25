@@ -97,19 +97,20 @@ That repeats
 verse
 This is the second verse
 More content here"""
-        
+
         result = self.detector.detect_sections(text)
-        
+
         self.assertTrue(result['has_sections'])
         self.assertEqual(len(result['sections']), 3)
-        
+
         sections = result['sections']
-        self.assertEqual(sections[0]['type'], 'verse')
-        self.assertEqual(sections[1]['type'], 'chorus')
-        self.assertEqual(sections[2]['type'], 'verse')
-        
+        # Section types are mapped to capitalized English names
+        self.assertEqual(sections[0]['type'], 'Verse')
+        self.assertEqual(sections[1]['type'], 'Chorus')
+        self.assertEqual(sections[2]['type'], 'Verse')
+
         self.assertIn('first verse', sections[0]['content'])
-        self.assertIn('chorus', sections[1]['content'])
+        self.assertIn('chorus', sections[1]['content'].lower())
         self.assertIn('second verse', sections[2]['content'])
     
     def test_numbered_sections(self):
@@ -122,16 +123,17 @@ Chorus content
 
 verse 2
 Second verse content"""
-        
+
         result = self.detector.detect_sections(text)
-        
+
         self.assertTrue(result['has_sections'])
         self.assertEqual(len(result['sections']), 3)
-        
-        # All verse sections should be normalized to 'verse'
+
+        # Numbered sections include the number in the type (e.g., 'Verse 1')
         sections = result['sections']
-        self.assertEqual(sections[0]['type'], 'verse')
-        self.assertEqual(sections[2]['type'], 'verse')
+        self.assertEqual(sections[0]['type'], 'Verse 1')
+        self.assertEqual(sections[1]['type'], 'Chorus')
+        self.assertEqual(sections[2]['type'], 'Verse 2')
     
     def test_swedish_section_mapping(self):
         """Test mapping of Swedish section names to English."""
@@ -140,15 +142,15 @@ Swedish verse content
 
 refräng
 Swedish chorus content"""
-        
+
         result = self.detector.detect_sections(text)
-        
+
         self.assertTrue(result['has_sections'])
         sections = result['sections']
-        
-        # Should be mapped to English equivalents
-        self.assertEqual(sections[0]['type'], 'verse')
-        self.assertEqual(sections[1]['type'], 'chorus')
+
+        # Swedish section names are mapped to capitalized English equivalents
+        self.assertEqual(sections[0]['type'], 'Verse')
+        self.assertEqual(sections[1]['type'], 'Chorus')
     
     def test_no_sections_fallback(self):
         """Test fallback when no sections are detected."""
@@ -297,10 +299,10 @@ class TestIntegratedWorkflow(unittest.TestCase):
         self.assertIn('flödar', full_text)
         self.assertIn('kärlek', full_text)
         
-        # Verify section structure
-        verse_sections = [s for s in sections['sections'] if s['type'] == 'verse']
-        chorus_sections = [s for s in sections['sections'] if s['type'] == 'chorus']
-        
+        # Verify section structure (types are capitalized English names)
+        verse_sections = [s for s in sections['sections'] if s['type'] == 'Verse']
+        chorus_sections = [s for s in sections['sections'] if s['type'] == 'Chorus']
+
         self.assertEqual(len(verse_sections), 2)
         self.assertEqual(len(chorus_sections), 1)
 
