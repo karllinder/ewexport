@@ -11,15 +11,16 @@ import webbrowser
 from typing import Optional, Dict, Any
 from packaging import version
 import threading
+from src.version import __version__
 
 logger = logging.getLogger(__name__)
 
 class UpdateChecker:
     """Handles checking for application updates from GitHub"""
-    
+
     GITHUB_API_URL = "https://api.github.com/repos/karllinder/ewexport/releases/latest"
     GITHUB_RELEASES_URL = "https://github.com/karllinder/ewexport/releases"
-    CURRENT_VERSION = "1.2.5"  # This should match the version in about dialog
+    CURRENT_VERSION = __version__  # Imported from centralized version module
     
     def __init__(self, config=None):
         """Initialize the update checker

@@ -17,6 +17,7 @@ from src.gui.settings_window import SettingsWindow
 from src.gui.dialogs import DuplicateFileDialog, ExportOptionsDialog
 from src.utils.config import get_config
 from src.utils.update_checker import UpdateChecker
+from src.version import __version__, RELEASE_DATE, RELEASE_YEAR
 
 logger = logging.getLogger(__name__)
 
@@ -249,12 +250,12 @@ class MainWindow:
     
     def show_about(self):
         """Show about dialog"""
-        about_text = """EasyWorship to ProPresenter Converter
-        
-Version: 1.2.5
-Released: August 2026
-        
-Converts songs from EasyWorship 6.1 database format 
+        about_text = f"""EasyWorship to ProPresenter Converter
+
+Version: {__version__}
+Released: {RELEASE_DATE}
+
+Converts songs from EasyWorship 6.1 database format
 to ProPresenter 6 format with Swedish language support.
 
 Features:
@@ -262,8 +263,8 @@ Features:
 • Configurable section mappings
 • Batch export with progress tracking
 • Full Swedish character support
-        
-© 2025 - Created with Python and Tkinter
+
+© {RELEASE_YEAR} - Created with Python and Tkinter
 GitHub: https://github.com/karllinder/ewexport"""
         
         messagebox.showinfo("About", about_text)
@@ -767,7 +768,7 @@ GitHub: https://github.com/karllinder/ewexport"""
             for col in ['title', 'author', 'copyright', 'ccli']:
                 try:
                     widths[col] = self.tree.column(col, 'width')
-                except:
+                except tk.TclError:
                     pass  # Column may not exist
             if widths:
                 self.config.save_column_widths(widths)

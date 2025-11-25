@@ -8,6 +8,10 @@ import shutil
 import subprocess
 from pathlib import Path
 
+# Add src to path so we can import the version module
+sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+from version import __version__, get_version_tuple, RELEASE_YEAR
+
 def clean_build_dirs():
     """Clean previous build artifacts"""
     dirs_to_clean = ['build', 'dist', '__pycache__']
@@ -102,17 +106,21 @@ def build_executable():
         return False
 
 def create_version_file():
-    """Create a version info file for Windows"""
-    version_content = """
+    """Create a version info file for Windows using centralized version"""
+    ver_tuple = get_version_tuple()
+    major, minor, patch = ver_tuple[0], ver_tuple[1], ver_tuple[2] if len(ver_tuple) > 2 else 0
+
+    version_content = f"""
 # UTF-8
 #
 # For more information about the PyInstaller version file format,
 # see: https://pyinstaller.readthedocs.io/en/stable/usage.html#windows
+# Version auto-generated from src/version.py
 
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(1, 2, 5, 0),
-    prodvers=(1, 2, 5, 0),
+    filevers=({major}, {minor}, {patch}, 0),
+    prodvers=({major}, {minor}, {patch}, 0),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -127,21 +135,21 @@ VSVersionInfo(
         u'040904B0',
         [StringStruct(u'CompanyName', u'EWExport'),
         StringStruct(u'FileDescription', u'EasyWorship to ProPresenter Converter'),
-        StringStruct(u'FileVersion', u'1.2.5.0'),
+        StringStruct(u'FileVersion', u'{__version__}.0'),
         StringStruct(u'InternalName', u'ewexport'),
-        StringStruct(u'LegalCopyright', u'Copyright (c) 2025'),
+        StringStruct(u'LegalCopyright', u'Copyright (c) {RELEASE_YEAR}'),
         StringStruct(u'OriginalFilename', u'ewexport.exe'),
         StringStruct(u'ProductName', u'EasyWorship to ProPresenter Converter'),
-        StringStruct(u'ProductVersion', u'1.2.5.0')])
-      ]), 
+        StringStruct(u'ProductVersion', u'{__version__}.0')])
+      ]),
     VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
   ]
 )
 """
-    
+
     with open('dist/version_info.txt', 'w') as f:
         f.write(version_content)
-    print("Created version info file")
+    print(f"Created version info file (version {__version__})")
 
 def main():
     """Main build process"""
