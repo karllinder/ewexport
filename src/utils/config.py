@@ -9,18 +9,42 @@ from typing import Dict, Any, Optional, Tuple
 import logging
 from datetime import datetime
 from src.version import SETTINGS_SCHEMA_VERSION
+from packaging import version as pkg_version
 
 logger = logging.getLogger(__name__)
+
+
+def get_app_data_dir() -> Path:
+    """
+    Get the application data directory for settings storage.
+
+    This is the centralized function for determining where app data should be stored.
+    All modules should use this function instead of implementing their own path logic.
+
+    Returns:
+        Path to the application data directory:
+        - Windows: %APPDATA%/EWExport
+        - macOS/Linux: ~/.ewexport
+    """
+    if os.name == 'nt':  # Windows
+        app_data = os.environ.get('APPDATA', Path.home() / 'AppData' / 'Roaming')
+        app_dir = Path(app_data) / 'EWExport'
+    else:  # Unix-like (macOS, Linux)
+        app_dir = Path.home() / '.ewexport'
+
+    # Create directory if it doesn't exist
+    app_dir.mkdir(parents=True, exist_ok=True)
+    return app_dir
 
 class ConfigManager:
     """Manages application settings with version tracking and migration support"""
 
     CURRENT_VERSION = SETTINGS_SCHEMA_VERSION  # Imported from centralized version module
-    
+
     def __init__(self):
         """Initialize configuration manager"""
-        # Determine config location
-        self.app_data_dir = self._get_app_data_dir()
+        # Determine config location using centralized function
+        self.app_data_dir = get_app_data_dir()
         self.settings_file = self.app_data_dir / "settings.json"
         self.section_mappings_file = self.app_data_dir / "section_mappings.json"
         
@@ -34,17 +58,13 @@ class ConfigManager:
         self.load_settings()
     
     def _get_app_data_dir(self) -> Path:
-        """Get application data directory for settings storage"""
-        if os.name == 'nt':  # Windows
-            app_data = os.environ.get('APPDATA', Path.home() / 'AppData' / 'Roaming')
-            app_dir = Path(app_data) / 'EWExport'
-        else:  # Unix-like
-            app_dir = Path.home() / '.ewexport'
-        
-        # Create directory if it doesn't exist
-        app_dir.mkdir(parents=True, exist_ok=True)
-        return app_dir
-    
+        """Get application data directory for settings storage.
+
+        Deprecated: Use the module-level get_app_data_dir() function instead.
+        This method is kept for backward compatibility.
+        """
+        return get_app_data_dir()
+
     def _get_default_settings(self) -> Dict[str, Any]:
         """Get default settings structure"""
         return {
@@ -174,12 +194,23 @@ class ConfigManager:
             return False
     
     def _migrate_settings(self, old_settings: Dict[str, Any], from_version: str) -> Dict[str, Any]:
-        """Migrate settings from an older version to current version"""
+        """Migrate settings from an older version to current version.
+
+        Uses semantic version comparison to handle all version ranges properly.
+        Migrations are applied incrementally from older to newer versions.
+        """
         migrated = old_settings.copy()
-        
-        # Version-specific migrations
-        if from_version == "1.0.0":
-            # Migration from 1.0.0 to 1.1.0
+
+        try:
+            current_ver = pkg_version.parse(from_version) if from_version else pkg_version.parse("0.0.0")
+        except Exception:
+            # If version parsing fails, assume very old version
+            logger.warning(f"Could not parse version '{from_version}', treating as 0.0.0")
+            current_ver = pkg_version.parse("0.0.0")
+
+        # Migration from pre-1.1.0 to 1.1.0
+        if current_ver < pkg_version.parse("1.1.0"):
+            logger.info(f"Applying migration: pre-1.1.0 -> 1.1.0")
             # Add new export options if they don't exist
             if 'export' not in migrated:
                 migrated['export'] = self.default_settings['export'].copy()
@@ -187,19 +218,27 @@ class ConfigManager:
                 # Add font settings if missing
                 if 'font' not in migrated['export']:
                     migrated['export']['font'] = self.default_settings['export']['font'].copy()
-                
+
                 # Add slide settings if missing
                 if 'slides' not in migrated['export']:
                     migrated['export']['slides'] = self.default_settings['export']['slides'].copy()
-            
+
             # Add duplicate handling if missing
             if 'duplicate_handling' not in migrated:
                 migrated['duplicate_handling'] = self.default_settings['duplicate_handling'].copy()
-        
-        # Future migrations would go here
-        # elif from_version == "1.1.0":
-        #     # Migration from 1.1.0 to 1.2.0
-        
+
+        # Migration from pre-1.2.0 to 1.2.0
+        if current_ver < pkg_version.parse("1.2.0"):
+            logger.info(f"Applying migration: pre-1.2.0 -> 1.2.0")
+            # Add any 1.2.0 specific migrations here
+            # Currently no additional migrations needed
+            pass
+
+        # Future migrations would follow the same pattern:
+        # if current_ver < pkg_version.parse("1.3.0"):
+        #     logger.info(f"Applying migration: pre-1.3.0 -> 1.3.0")
+        #     # Add 1.3.0 specific migrations
+
         return migrated
     
     def _deep_merge(self, base: Dict[str, Any], overlay: Dict[str, Any]) -> Dict[str, Any]:

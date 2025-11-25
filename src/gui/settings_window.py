@@ -11,27 +11,27 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 import shutil
 from src.version import SECTION_MAPPINGS_SCHEMA_VERSION
+from src.utils.config import get_app_data_dir
+from packaging import version as pkg_version
 
 logger = logging.getLogger(__name__)
 
 class SettingsWindow:
     CURRENT_VERSION = SECTION_MAPPINGS_SCHEMA_VERSION  # Imported from centralized version module
-    
+
     def __init__(self, parent_window=None):
         self.parent = parent_window
         self.window = tk.Toplevel() if parent_window else tk.Tk()
         self.window.title("Section Mapping Settings")
         self.window.geometry("800x600")
-        
+
         # Make window modal if has parent
         if parent_window:
             self.window.transient(parent_window.root)
             self.window.grab_set()
-        
-        # Load current mappings from APPDATA
-        app_data = os.environ.get('APPDATA', Path.home() / 'AppData' / 'Roaming')
-        app_dir = Path(app_data) / 'EWExport'
-        app_dir.mkdir(parents=True, exist_ok=True)
+
+        # Load current mappings from app data directory (cross-platform)
+        app_dir = get_app_data_dir()
         self.config_file = app_dir / "section_mappings.json"
         self.mappings = {}
         self.original_mappings = {}
@@ -497,18 +497,35 @@ class SettingsWindow:
         }
     
     def migrate_config(self, data, from_version):
-        """Migrate config from older version to current version"""
-        # Version 1.0.0 -> 1.1.0: Add version field if missing
-        if not from_version or from_version < "1.1.0":
+        """Migrate config from older version to current version.
+
+        Uses semantic version comparison to handle all version ranges properly.
+        """
+        try:
+            current_ver = pkg_version.parse(from_version) if from_version else pkg_version.parse("0.0.0")
+        except Exception:
+            # If version parsing fails, assume very old version
+            logger.warning(f"Could not parse version '{from_version}', treating as 0.0.0")
+            current_ver = pkg_version.parse("0.0.0")
+
+        # Migration from pre-1.1.0 to 1.1.0: Add version field if missing
+        if current_ver < pkg_version.parse("1.1.0"):
+            logger.info(f"Applying section mappings migration: pre-1.1.0 -> 1.1.0")
             data["version"] = self.CURRENT_VERSION
             # Ensure all default fields exist
             if "notes" not in data:
                 data["notes"] = self.get_default_config()["notes"]
-        
-        # Future migrations would go here
-        # elif from_version < "1.2.0":
-        #     # Migrate from 1.1.0 to 1.2.0
-        
+
+        # Migration from pre-1.2.0 to 1.2.0
+        if current_ver < pkg_version.parse("1.2.0"):
+            logger.info(f"Applying section mappings migration: pre-1.2.0 -> 1.2.0")
+            # Update version to current
+            data["version"] = self.CURRENT_VERSION
+
+        # Future migrations would follow the same pattern:
+        # if current_ver < pkg_version.parse("1.3.0"):
+        #     # Migrate from pre-1.3.0 to 1.3.0
+
         return data
     
     def load_mappings(self):

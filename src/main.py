@@ -13,6 +13,10 @@ from pathlib import Path
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, parent_dir)
 
+from src.version import SECTION_MAPPINGS_SCHEMA_VERSION
+from src.utils.config import get_app_data_dir
+
+
 def initialize_application():
     """Initialize application directories and configuration"""
     # Determine if running as frozen executable or script
@@ -22,15 +26,14 @@ def initialize_application():
     else:
         # Running as script
         application_path = os.path.dirname(os.path.abspath(__file__))
-    
-    # Ensure required directories exist
-    app_data_dir = Path(os.environ.get('APPDATA', Path.home() / 'AppData' / 'Roaming')) / 'EWExport'
-    app_data_dir.mkdir(parents=True, exist_ok=True)
-    
+
+    # Get app data directory using centralized cross-platform function
+    app_data_dir = get_app_data_dir()
+
     # Create logs directory
     logs_dir = app_data_dir / 'logs'
     logs_dir.mkdir(exist_ok=True)
-    
+
     # Setup basic logging
     logging.basicConfig(
         level=logging.INFO,
@@ -40,26 +43,24 @@ def initialize_application():
             logging.StreamHandler()
         ]
     )
-    
+
     logger = logging.getLogger(__name__)
     logger.info(f"Application initialized. Running from: {application_path}")
     logger.info(f"Configuration directory: {app_data_dir}")
-    
-    # Ensure default section mappings exist in APPDATA
+
+    # Ensure default section mappings exist in app data directory
     section_mappings_file = app_data_dir / 'section_mappings.json'
     if not section_mappings_file.exists():
         import json
         default_mappings = {
-            "version": "1.2.4",
+            "version": SECTION_MAPPINGS_SCHEMA_VERSION,
             "section_mappings": {
                 "vers": "Verse",
-                "refräng": "Chorus",
-                "refrÃ¤ng": "Chorus",
+                "refr\u00e4ng": "Chorus",
                 "brygga": "Bridge",
                 "stick": "Bridge",
                 "pre-chorus": "Pre-Chorus",
-                "förrefräng": "Pre-Chorus",
-                "fÃ¶rrefrÃ¤ng": "Pre-Chorus",
+                "f\u00f6rrefr\u00e4ng": "Pre-Chorus",
                 "outro": "Outro",
                 "slut": "Outro"
             },
@@ -70,7 +71,7 @@ def initialize_application():
         }
         with open(section_mappings_file, 'w', encoding='utf-8') as f:
             json.dump(default_mappings, f, indent=2, ensure_ascii=False)
-        logger.info("Created default section_mappings.json in APPDATA")
+        logger.info("Created default section_mappings.json in app data directory")
 
 from src.gui.main_window import MainWindow
 
