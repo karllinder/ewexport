@@ -517,16 +517,16 @@ GitHub: https://github.com/karllinder/ewexport"""
             
             # Export songs
             output_dir = Path(self.output_path.get())
-            successful, failed = self.exporter.export_songs_batch(
+            successful, failed, skipped = self.exporter.export_songs_batch(
                 songs_to_export,
                 output_dir,
                 progress_callback=self.update_export_progress,
                 parent_window=self.root,
                 cancel_event=self.export_cancel_event
             )
-            
+
             # Update UI in main thread
-            self.root.after(0, self.export_complete, successful, failed)
+            self.root.after(0, self.export_complete, successful, failed, skipped)
             
         except Exception as e:
             error_msg = f"Export failed with error: {str(e)}"
@@ -547,8 +547,11 @@ GitHub: https://github.com/karllinder/ewexport"""
         
         self.root.after(0, update_ui)
     
-    def export_complete(self, successful: List[str], failed: List[str]):
+    def export_complete(self, successful: List[str], failed: List[str], skipped: List[str] = None):
         """Handle export completion"""
+        if skipped is None:
+            skipped = []
+
         self.export_in_progress = False
         self.export_btn.config(state='normal')
         self.cancel_btn.config(state='disabled')
@@ -559,8 +562,13 @@ GitHub: https://github.com/karllinder/ewexport"""
             self.progress.config(value=0)
             self.progress_label.config(text="Export cancelled")
             success_count = len(successful)
-            messagebox.showinfo("Export Cancelled",
-                              f"Export was cancelled.\n\n{success_count} song{'s were' if success_count != 1 else ' was'} exported before cancellation.")
+            skip_count = len(skipped)
+            message = f"Export was cancelled.\n\n"
+            if success_count > 0:
+                message += f"{success_count} song{'s were' if success_count != 1 else ' was'} exported before cancellation."
+            if skip_count > 0:
+                message += f"\n{skip_count} song{'s were' if skip_count != 1 else ' was'} skipped."
+            messagebox.showinfo("Export Cancelled", message)
             return
 
         self.progress.config(value=100)
@@ -568,31 +576,52 @@ GitHub: https://github.com/karllinder/ewexport"""
         # Show results
         success_count = len(successful)
         fail_count = len(failed)
-        
-        if fail_count == 0:
+        skip_count = len(skipped)
+
+        if fail_count == 0 and skip_count == 0:
+            # All successful, no skips or failures
             message = f"Successfully exported {success_count} song{'s' if success_count != 1 else ''}!\n\n"
             message += f"Files saved to: {self.output_path.get()}"
             messagebox.showinfo("Export Complete", message)
-            
+
             # Clear selection after successful export
             self.select_none()
+        elif fail_count == 0 and skip_count > 0:
+            # Some skipped, no failures
+            message = f"Export completed.\n\n"
+            message += f"Exported: {success_count} song{'s' if success_count != 1 else ''}\n"
+            message += f"Skipped: {skip_count} song{'s' if skip_count != 1 else ''}\n\n"
+            if skipped:
+                message += "Skipped files:\n"
+                for title in skipped[:5]:
+                    message += f"  {title}\n"
+                if len(skipped) > 5:
+                    message += f"  ... and {len(skipped) - 5} more"
+            message += f"\n\nFiles saved to: {self.output_path.get()}"
+            messagebox.showinfo("Export Complete", message)
+
+            # Clear selection
+            self.select_none()
         else:
+            # Some failures
             message = f"Export completed with some issues:\n\n"
-            message += f"Successfully exported: {success_count} songs\n"
-            message += f"Failed to export: {fail_count} songs\n\n"
-            
+            message += f"Exported: {success_count} song{'s' if success_count != 1 else ''}\n"
+            if skip_count > 0:
+                message += f"Skipped: {skip_count} song{'s' if skip_count != 1 else ''}\n"
+            message += f"Failed: {fail_count} song{'s' if fail_count != 1 else ''}\n\n"
+
             if failed:
                 message += "Failed exports:\n"
                 for error in failed[:5]:  # Show first 5 errors
-                    message += f"• {error}\n"
+                    message += f"  {error}\n"
                 if len(failed) > 5:
-                    message += f"... and {len(failed) - 5} more errors"
-            
+                    message += f"  ... and {len(failed) - 5} more errors"
+
             messagebox.showwarning("Export Completed with Errors", message)
-            
+
             # Clear selection even if some exports failed
             self.select_none()
-        
+
         self.progress_label.config(text="Ready to export")
     
     def export_error(self, error_message: str):
