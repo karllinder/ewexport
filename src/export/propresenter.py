@@ -579,7 +579,7 @@ class ProPresenter6Exporter:
     
     def export_songs_batch(self, songs_with_sections: List[Tuple[Dict[str, Any], List[Dict[str, str]]]],
                           output_path: Path, progress_callback=None, parent_window=None,
-                          cancel_event=None) -> Tuple[List[str], List[str]]:
+                          cancel_event=None) -> Tuple[List[str], List[str], List[str]]:
         """Export multiple songs with progress tracking, duplicate handling, and cancellation support
 
         Args:
@@ -588,10 +588,14 @@ class ProPresenter6Exporter:
             progress_callback: Optional callback for progress updates
             parent_window: Parent window for dialogs
             cancel_event: Optional threading.Event to signal cancellation
+
+        Returns:
+            Tuple of (successful_exports, failed_exports, skipped_exports)
         """
 
         successful_exports = []
         failed_exports = []
+        skipped_exports = []
         total_songs = len(songs_with_sections)
         
         # Build a map of existing files for duplicate detection
@@ -638,7 +642,7 @@ class ProPresenter6Exporter:
                     action = self._handle_duplicate(file_path, remaining, parent_window)
                     
                     if action == 'skip':
-                        successful_exports.append(f"Skipped: {song_data.get('title', 'Unknown')}")
+                        skipped_exports.append(song_data.get('title', 'Unknown'))
                         continue
                     elif action == 'cancel':
                         failed_exports.append(f"Cancelled: {song_data.get('title', 'Unknown')}")
@@ -675,8 +679,8 @@ class ProPresenter6Exporter:
         # Final progress update
         if progress_callback:
             progress_callback(total_songs, total_songs, "Export complete")
-        
-        return successful_exports, failed_exports
+
+        return successful_exports, failed_exports, skipped_exports
     
     def _generate_filename(self, song_data: Dict[str, Any]) -> str:
         """Generate filename based on config settings"""
