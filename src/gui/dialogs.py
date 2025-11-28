@@ -191,7 +191,7 @@ class ExportOptionsDialog:
         # Create dialog
         self.dialog = tk.Toplevel(parent)
         self.dialog.title("Export Options")
-        self.dialog.geometry("650x600")
+        self.dialog.geometry("650x650")
         self.dialog.transient(parent)
         self.dialog.grab_set()
         
@@ -276,10 +276,20 @@ class ExportOptionsDialog:
         # Duplicate handling
         dup_frame = ttk.LabelFrame(frame, text="Duplicate Files", padding="10")
         dup_frame.pack(fill=tk.X)
-        
-        self.overwrite_var = tk.BooleanVar()
-        ttk.Checkbutton(dup_frame, text="Overwrite existing files without asking", 
-                       variable=self.overwrite_var).pack(anchor=tk.W, pady=2)
+
+        ttk.Label(dup_frame, text="When a file already exists:").pack(anchor=tk.W, pady=(0, 5))
+
+        self.duplicate_action_var = tk.StringVar()
+        duplicate_options = [
+            ("Ask each time", "ask"),
+            ("Skip all duplicates", "skip"),
+            ("Overwrite all", "overwrite"),
+            ("Rename all (add number suffix)", "rename")
+        ]
+
+        for text, value in duplicate_options:
+            ttk.Radiobutton(dup_frame, text=text, variable=self.duplicate_action_var,
+                           value=value).pack(anchor=tk.W, pady=1)
     
     def _build_format_tab(self, parent):
         """Build the formatting options tab"""
@@ -466,7 +476,7 @@ class ExportOptionsDialog:
         
         self.include_ccli_var.set(self.config.get('export.include_ccli_in_filename', False))
         self.include_author_var.set(self.config.get('export.include_author_in_filename', False))
-        self.overwrite_var.set(self.config.get('export.overwrite_existing', False))
+        self.duplicate_action_var.set(self.config.get('export.duplicate_handling_action', 'ask'))
         
         # Formatting
         self.formatting_enabled_var.set(self.config.get('export.formatting_enabled', False))
@@ -497,7 +507,7 @@ class ExportOptionsDialog:
         
         self.config.set('export.include_ccli_in_filename', self.include_ccli_var.get(), save=False)
         self.config.set('export.include_author_in_filename', self.include_author_var.get(), save=False)
-        self.config.set('export.overwrite_existing', self.overwrite_var.get(), save=False)
+        self.config.set('export.duplicate_handling_action', self.duplicate_action_var.get(), save=False)
         
         # Formatting
         self.config.set('export.formatting_enabled', self.formatting_enabled_var.get(), save=False)

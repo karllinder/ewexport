@@ -600,7 +600,10 @@ class ProPresenter6Exporter:
         
         # Build a map of existing files for duplicate detection
         existing_files = {}
-        if self.config and not self.config.get('export.overwrite_existing', False):
+        # Get the duplicate handling action from config
+        dup_action = self.config.get('export.duplicate_handling_action', 'ask') if self.config else 'ask'
+        # Only build the map if we might need to handle duplicates (not overwrite mode)
+        if dup_action != 'overwrite':
             # Count how many songs will create each filename
             for idx, (song_data, _) in enumerate(songs_with_sections):
                 filename = self._generate_filename(song_data)
@@ -610,9 +613,13 @@ class ProPresenter6Exporter:
                         existing_files[str(file_path)] = []
                     existing_files[str(file_path)].append(idx)
         
-        # Reset duplicate action for new batch
-        self.duplicate_action = None
-        
+        # Set duplicate action from config (if not "ask", pre-set the action)
+        default_action = self.config.get('export.duplicate_handling_action', 'ask') if self.config else 'ask'
+        if default_action != 'ask':
+            self.duplicate_action = default_action
+        else:
+            self.duplicate_action = None
+
         for i, (song_data, sections) in enumerate(songs_with_sections):
             # Check for cancellation before processing each song
             if cancel_event and cancel_event.is_set():
@@ -629,7 +636,7 @@ class ProPresenter6Exporter:
                 filename = self._generate_filename(song_data)
                 file_path = output_path / filename
                 
-                if file_path.exists() and not (self.config and self.config.get('export.overwrite_existing', False)):
+                if file_path.exists() and dup_action != 'overwrite':
                     # Handle duplicate - calculate remaining duplicates
                     remaining = 0
                     if str(file_path) in existing_files:
