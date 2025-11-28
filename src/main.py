@@ -52,22 +52,43 @@ def initialize_application():
     section_mappings_file = app_data_dir / 'section_mappings.json'
     if not section_mappings_file.exists():
         import json
+        # Complete mappings for both English and Swedish source labels
+        # Note: File is written with UTF-8 encoding for cross-platform compatibility
         default_mappings = {
             "version": SECTION_MAPPINGS_SCHEMA_VERSION,
             "section_mappings": {
+                # Swedish source labels
                 "vers": "Verse",
-                "refr\u00e4ng": "Chorus",
+                "refräng": "Chorus",
                 "brygga": "Bridge",
-                "stick": "Bridge",
+                "förrefräng": "Pre-Chorus",
+                "slut": "Outro",
+                # English source labels
+                "verse": "Verse",
+                "chorus": "Chorus",
+                "bridge": "Bridge",
                 "pre-chorus": "Pre-Chorus",
-                "f\u00f6rrefr\u00e4ng": "Pre-Chorus",
+                "prechorus": "Pre-Chorus",
+                "intro": "Intro",
                 "outro": "Outro",
-                "slut": "Outro"
+                "tag": "Tag",
+                "ending": "Ending"
             },
             "number_mapping_rules": {
                 "preserve_numbers": True,
+                "start_from_one": True,
                 "format": "{section_name} {number}"
-            }
+            },
+            "gui_settings": {
+                "editable_via_gui": True,
+                "description": "Section name mappings from Swedish/English to English for ProPresenter export"
+            },
+            "notes": [
+                "This file maps Swedish and English section names to English equivalents",
+                "Numbers are preserved: 'vers 1' becomes 'Verse 1'",
+                "Case-insensitive matching is applied",
+                "These mappings can be edited from Edit -> Section Mappings in the GUI"
+            ]
         }
         with open(section_mappings_file, 'w', encoding='utf-8') as f:
             json.dump(default_mappings, f, indent=2, ensure_ascii=False)
