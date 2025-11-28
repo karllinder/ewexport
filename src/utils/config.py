@@ -96,7 +96,7 @@ class ConfigManager:
                 "output_directory": None,  # User's selected output directory
                 "include_ccli_in_filename": False,
                 "include_author_in_filename": False,
-                "overwrite_existing": False,
+                "duplicate_handling_action": "ask",  # ask, skip, overwrite, rename
                 "export_format": "propresenter6",  # or "propresenter7" in future
                 "formatting_enabled": False,  # Master control for custom formatting
                 "change_font": False,  # Whether to override font
