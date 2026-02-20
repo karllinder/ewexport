@@ -2,6 +2,28 @@
 
 All notable changes to the EasyWorship to ProPresenter Converter project will be documented in this file.
 
+## [1.3.0] - 2026-02-20
+
+### ✨ New Feature - Song Preview Panel (#10)
+
+Added a resizable preview panel to the main window so users can see processed lyrics and detected sections before exporting.
+
+### 🎯 Features
+- **Preview panel** with Song Details (title, author, copyright, CCLI) and Lyrics Preview
+- **Section headers** displayed in bold blue (e.g., [Verse 1], [Chorus]) matching export output
+- **Click to preview** — click any song row to see its lyrics without toggling the checkbox
+- **Keyboard navigation** — use arrow keys to browse songs with live preview updates
+- **Resizable layout** — drag the divider between song list and preview panel
+- **Persistent sash position** — divider position saved and restored across sessions
+- **Graceful handling** — shows "No lyrics available" for songs without content
+
+### 🔧 Fixes
+- Fixed `main_frame.rowconfigure` weight bug — Songs frame now properly expands vertically
+- Default window size increased to 1200x700 to accommodate preview panel
+- Sash position save/restore guards against invalid zero values
+
+### ✅ All 63 tests pass
+
 ## [1.2.9] - 2026-02-20
 
 ### 🔒 Security Cleanup & Code Quality

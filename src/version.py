@@ -6,7 +6,7 @@ All other modules should import from here rather than defining their own version
 """
 
 # Application version - update this single location for new releases
-__version__ = "1.2.9"
+__version__ = "1.3.0"
 
 # Schema versions for configuration files
 SETTINGS_SCHEMA_VERSION = "1.2.0"
