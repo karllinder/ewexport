@@ -2,6 +2,33 @@
 
 All notable changes to the EasyWorship to ProPresenter Converter project will be documented in this file.
 
+## [1.2.9] - 2026-02-20
+
+### 🔒 Security Cleanup & Code Quality
+
+This release addresses findings from a comprehensive security audit of the entire codebase.
+
+### 🔧 Security Fixes
+- **Removed hardcoded test path** from production auto-detect code (`C:\Claud\ewtest\orginaldb`)
+- **Replaced 7 bare `except:` clauses** in build scripts with specific exception types
+- **Fixed machine name disclosure** — `COMPUTERNAME` env var no longer written to release_info.json
+
+### 🧹 Code Cleanup (-89 lines)
+- Removed dead `load_saved_paths` legacy method from main_window.py
+- Removed duplicate `set_default_output_path` method definition
+- Removed `create_sample_pro6()` test function from propresenter.py
+- Removed `if __name__` test blocks from production modules
+- Moved `import re` to module level in 3 files (was imported inside methods)
+- Removed unused `errno` import from propresenter.py
+- Removed duplicate `from pathlib import Path` in easyworship.py
+
+### 📝 Documentation
+- Updated CLAUDE.md with full security audit results
+- Updated file structure to match current codebase
+- Updated issue tracking (marked #21, #23, #24 as resolved)
+
+### ✅ All 63 tests pass
+
 ## [1.2.5] - 2026-08-17
 
 ### 🐛 Bug Fix - Remove Local Config Folder Creation
