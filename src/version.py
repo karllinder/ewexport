@@ -6,15 +6,15 @@ All other modules should import from here rather than defining their own version
 """
 
 # Application version - update this single location for new releases
-__version__ = "1.2.8"
+__version__ = "1.2.9"
 
 # Schema versions for configuration files
 SETTINGS_SCHEMA_VERSION = "1.2.0"
 SECTION_MAPPINGS_SCHEMA_VERSION = "1.2.0"
 
 # Release information
-RELEASE_DATE = "November 2025"
-RELEASE_YEAR = "2025"
+RELEASE_DATE = "February 2026"
+RELEASE_YEAR = "2026"
 
 def get_version() -> str:
     """Get the current application version string"""
