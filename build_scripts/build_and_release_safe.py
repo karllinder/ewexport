@@ -172,7 +172,7 @@ If your antivirus flags this file:
 2. Add an exception for ewexport.exe
 3. See ANTIVIRUS.md for detailed guidance
 
-See CHANGELOG.md for complete technical details."""
+See the GitHub release page for complete details."""
     
     try:
         # Create release

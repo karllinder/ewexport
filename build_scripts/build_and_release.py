@@ -235,7 +235,7 @@ This executable is built with optimized settings to reduce false positives. If y
 ## 📥 Installation
 1. Download `ewexport.exe`
 2. Run directly - no installation needed
-3. See `INSTALL.md` for detailed instructions
+3. See `README.md` for usage instructions
 """
     
     try:
