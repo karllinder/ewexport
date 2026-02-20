@@ -1,156 +1,78 @@
 # EasyWorship to ProPresenter Converter
 
-A Windows desktop application that converts songs from EasyWorship 6.1 database format to ProPresenter 6 format with full support for Swedish and English text.
-
-## 🎉 Current Version: v1.2.5
-
-The converter successfully exports songs from EasyWorship to ProPresenter 6 format with advanced formatting controls and customization options.
+A Windows desktop application that converts songs from EasyWorship 6.1 database format to ProPresenter 6 format with full Swedish and English language support.
 
 ## Features
 
-### Core Functionality
-- ✅ Read songs from EasyWorship 6.1 SQLite databases (Songs.db & SongWords.db)
-- ✅ Export to ProPresenter 6 XML format (.pro6)
-- ✅ Full Swedish character support (å, ä, ö)
-- ✅ Automatic section detection (Verse, Chorus, Bridge, etc.)
-- ✅ Configurable Swedish to English section name mapping
-- ✅ RTF text parsing with Unicode support
-- ✅ Real-time search filtering across all song fields
-- ✅ Custom font selection from all Windows system fonts
-- ✅ Configurable slide formatting and line breaks
-- ✅ Duplicate file detection and handling
-- ✅ Complete settings persistence
-
-### Using Section Mappings
-
-Access the Section Mappings settings from the Edit menu to:
-- Customize how Swedish section names are translated to English
-- Add new language mappings
-- Import/export mapping configurations
-- Test translations with the preview feature
-
-### Export Options
-
-Access Export Options from the Edit menu to configure:
-- **Font Settings**: Choose from all available Windows fonts and set custom font size
-- **Line Breaking**: Control how lyrics are split across slides
-- **File Naming**: Include CCLI number or author in filenames
-- **Duplicate Handling**: Choose to skip, overwrite, or rename duplicates
-
-#### Line Breaking and Slide Formatting
-
-The "Automatically break long lines" setting controls how content is divided into slides:
-
-**How it works:**
-1. **Natural Slide Breaks**: Empty lines in the lyrics always create new slides
-2. **Maximum Lines Per Slide**: Set how many lines appear on each slide (default: 4)
-
-**When "Automatically break long lines" is ON:**
-- Slides with more lines than the maximum are automatically split
-- Example: An 8-line verse with max=4 creates 2 slides (4 lines each)
-
-**When "Automatically break long lines" is OFF:**
-- Natural slides are kept intact regardless of line count
-- Only empty lines create new slides
-- Example: An 8-line verse stays as 1 slide with all 8 lines
-
-### Search Features
-
-The search bar allows you to:
-- Filter songs by title, author, copyright, or CCLI number
-- View search history (last 10 searches)
-- See filtered results count
-- Clear search with one click
-
-
-## Development Progress
-
-### 🔮 Future Enhancements
-- Multi-language support (German, French, Spanish)
-- Advanced search
-- Edit text before export option
-
-## Technology Stack
-
-- Python 3.x
-- Tkinter (GUI)
-- SQLite3 (Database access)
-- XML generation for ProPresenter format
+- Read songs from EasyWorship 6.1 SQLite databases (Songs.db & SongWords.db)
+- Export to ProPresenter 6 XML format (.pro6)
+- Full Swedish character support (å, ä, ö)
+- Automatic section detection (Verse, Chorus, Bridge, etc.)
+- Configurable Swedish to English section name mapping
+- Song preview panel with formatted lyrics and section headers
+- Real-time search filtering across all song fields
+- Custom font selection from all Windows system fonts
+- Configurable slide formatting and line breaks
+- Duplicate file detection and handling
+- Automatic update checking
 
 ## Requirements
 
 - Windows 10 or 11
 - EasyWorship 6.1 database files
-- That's it! (The executable includes everything else)
 
 ## Installation
 
-### Option 1: Download Executable (Easiest - No Installation Required!)
-1. Go to [Releases](https://github.com/karllinder/ewexport/releases/latest)
-2. Download `ewexport.exe` 
-3. Run it from anywhere - it's completely standalone!
+### Download Executable (Recommended)
 
+1. Go to the [Latest Release](https://github.com/karllinder/ewexport/releases/latest)
+2. Download `ewexport.exe`
+3. Run it from anywhere - it's completely standalone
 
-**Note**: Some antivirus software may flag the executable as a false positive. This is common with PyInstaller apps. If you encounter this:
-1. Verify the SHA256 hash from the release page
-2. Add an exception for ewexport.exe in your antivirus
-3. Report it as a false positive to your antivirus vendor
+**Antivirus note**: Some antivirus software may flag the executable as a false positive. This is common with PyInstaller apps. Verify the SHA256 hash from the release page and add an exception if needed.
 
-### Option 2: Automated Installation
-See [INSTALL.md](INSTALL.md) for detailed installation instructions including automated setup script.
+### Run from Source
 
-### Option 3: Run from Source
 1. Clone the repository:
-```bash
-git clone https://github.com/karllinder/ewexport.git
-cd ewexport
-```
+   ```bash
+   git clone https://github.com/karllinder/ewexport.git
+   cd ewexport
+   ```
 
 2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-## Quick Start
+3. Run the application:
+   ```bash
+   python run.py
+   ```
 
-### Running from Source
+## Usage
 
-1. Run the application:
-```bash
-python run.py
-```
+1. **Load database** - The app auto-detects your EasyWorship database location, or browse to select it manually
+2. **Browse songs** - Use the search bar to filter by title, author, copyright, or CCLI number
+3. **Preview** - Click any song to see its processed lyrics and detected sections in the preview panel
+4. **Select songs** - Use checkboxes or the Select All/None buttons
+5. **Configure** - Optionally adjust section mappings (Edit menu) and export options (font, line breaks, slides)
+6. **Export** - Choose an output directory and click "Export Selected Songs"
 
-2. The application will auto-detect your EasyWorship database location, or you can browse to select it manually
+The exported .pro6 files can be imported directly into ProPresenter 6.
 
-3. Use the search bar to filter songs or browse the full list
+## Settings
 
-4. Select songs from the list using checkboxes or use Select All/None buttons
+All application settings are stored in `%APPDATA%\EWExport\` and persist across sessions, including window size, sash position, export preferences, and section mappings.
 
-5. Configure section mappings via Edit → Section Mappings (optional)
+## Uninstallation
 
-6. Choose an export location (default: Desktop/ProPresenter_Export)
-
-7. Click "Export Selected Songs" to generate ProPresenter 6 files
-
-The exported .pro6 files will be saved to your chosen directory and can be imported directly into ProPresenter 6.
-
-
-
-## Acknowledgments
-
-- Based on research from [ew61-export](https://github.com/jamesinglis/ew61-export) PHP implementation
-
+1. Delete `ewexport.exe`
+2. Delete the settings folder: `%APPDATA%\EWExport`
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) for details.
 
-### MIT License Summary
+## Acknowledgments
 
-This software is provided free of charge.
-
-The only requirements are:
-- Include the original copyright notice
-- Include the license text
-
-The software is provided "as is", without warranty of any kind.
+Based on research from [ew61-export](https://github.com/jamesinglis/ew61-export) PHP implementation.

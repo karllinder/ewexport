@@ -484,9 +484,6 @@ ewexport/
 ├── .gitignore
 ├── README.md
 ├── CLAUDE.md                    # Technical documentation
-├── CHANGELOG.md                 # Version history
-├── INSTALL.md                   # Installation guide
-├── RELEASE_PROCESS.md           # Release documentation
 ├── LICENSE                      # MIT License
 ├── requirements.txt
 ├── setup.py
@@ -821,13 +818,74 @@ class EasyWorshipDatabase:
 - Merge to main via pull request after testing
 
 ### Release Process
-1. Complete sprint features on feature branch
-2. Run all tests
-3. Update version in setup.py
-4. Update README and CHANGELOG
-5. Create pull request to main
-6. Tag release after merge
-7. Build executable with PyInstaller
+
+Releases are built locally (not via GitHub Actions) to reduce antivirus false positives.
+
+#### Prerequisites
+- Python 3.11+ with PyInstaller
+- GitHub CLI (`gh`) authenticated
+- Git with push access
+
+#### Full Build and Release (Recommended)
+
+```powershell
+# 1. Update version in src/version.py
+# 2. Commit changes and merge to main via PR
+# 3. Run the build and release script (Windows-safe version)
+python build_scripts/build_and_release_safe.py
+```
+
+Use `_safe.py` versions of scripts on Windows to avoid Unicode encoding issues.
+
+This script will:
+- Clean build environment
+- Build executable with antivirus-friendly settings
+- Verify build integrity and calculate SHA256 hash
+- Create GitHub release and upload executable
+
+#### Separate Build and Upload
+
+**Step 1: Build**
+```powershell
+python build_scripts/build_clean.py
+```
+
+**Step 2: Tag and release**
+```powershell
+git tag vX.X.X -m "Release vX.X.X"
+git push origin vX.X.X
+```
+
+**Step 3: Upload**
+```powershell
+python build_scripts/upload_release_safe.py
+```
+
+Or upload manually via GitHub web interface (drag and drop `dist/ewexport.exe`).
+
+#### Build Verification
+```powershell
+# SHA256 hash
+Get-FileHash dist/ewexport.exe -Algorithm SHA256
+
+# Test executable
+dist/ewexport.exe
+```
+
+#### Antivirus Best Practices
+- Use the clean build configuration (`build_clean.py`) - disables UPX, adds version info
+- Calculate and include SHA256 hash in release notes
+- Submit to VirusTotal for reputation building
+- If flagged: verify hash, check VirusTotal, report false positive to vendor
+
+#### Release Checklist
+1. Update version in `src/version.py`
+2. Commit and merge to main via PR
+3. Run `python build_scripts/build_clean.py`
+4. Verify executable works
+5. Create version tag and push
+6. Create GitHub release with exe upload and SHA256 hash
+7. Close related GitHub issues
 
 ### Code Standards
 #### Python Style
