@@ -75,7 +75,7 @@ class MainWindow:
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
         main_frame.columnconfigure(1, weight=1)
-        main_frame.rowconfigure(2, weight=1)
+        main_frame.rowconfigure(1, weight=1)
         
         # Database selection frame
         db_frame = ttk.LabelFrame(main_frame, text="EasyWorship Database", padding="10")
@@ -131,38 +131,60 @@ class MainWindow:
         self.selected_count_label = ttk.Label(button_frame, text="0 songs selected")
         self.selected_count_label.pack(side=tk.LEFT, padx=(20, 0))
         
+        # PanedWindow to split song list and preview
+        self.paned = ttk.PanedWindow(list_frame, orient=tk.HORIZONTAL)
+        self.paned.grid(row=2, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        # Left pane: Treeview with scrollbars
+        tree_frame = ttk.Frame(self.paned)
+        tree_frame.columnconfigure(0, weight=1)
+        tree_frame.rowconfigure(0, weight=1)
+
         # Create Treeview for song list
         columns = ('title', 'author', 'copyright', 'ccli')
-        self.tree = ttk.Treeview(list_frame, columns=columns, show='tree headings', selectmode='extended')
-        self.tree.grid(row=2, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))  # Changed to row 2
-        
+        self.tree = ttk.Treeview(tree_frame, columns=columns, show='tree headings', selectmode='extended')
+        self.tree.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
         # Configure columns
         self.tree.heading('#0', text='✓', anchor=tk.W)
         self.tree.column('#0', width=30, stretch=False)
-        
+
         self.tree.heading('title', text='Title')
         self.tree.column('title', width=300)
-        
+
         self.tree.heading('author', text='Author')
         self.tree.column('author', width=200)
-        
+
         self.tree.heading('copyright', text='Copyright')
         self.tree.column('copyright', width=200)
-        
+
         self.tree.heading('ccli', text='CCLI/Ref')
         self.tree.column('ccli', width=100)
-        
+
         # Add scrollbars
-        vsb = ttk.Scrollbar(list_frame, orient="vertical", command=self.tree.yview)
-        vsb.grid(row=2, column=1, sticky=(tk.N, tk.S))  # Changed to row 2
+        vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
+        vsb.grid(row=0, column=1, sticky=(tk.N, tk.S))
         self.tree.configure(yscrollcommand=vsb.set)
-        
-        hsb = ttk.Scrollbar(list_frame, orient="horizontal", command=self.tree.xview)
-        hsb.grid(row=3, column=0, sticky=(tk.W, tk.E))  # Changed to row 3
+
+        hsb = ttk.Scrollbar(tree_frame, orient="horizontal", command=self.tree.xview)
+        hsb.grid(row=1, column=0, sticky=(tk.W, tk.E))
         self.tree.configure(xscrollcommand=hsb.set)
-        
+
+        self.paned.add(tree_frame, weight=3)
+
+        # Right pane: Preview panel
+        preview_frame = ttk.Frame(self.paned)
+        self._setup_preview_panel(preview_frame)
+        self.paned.add(preview_frame, weight=1)
+
+        # Restore saved sash position after layout is computed
+        self.root.after(100, self._restore_sash_position)
+
         # Bind click event for checkbox toggle
         self.tree.bind('<ButtonRelease-1>', self.on_item_click)
+
+        # Bind selection change for keyboard navigation
+        self.tree.bind('<<TreeviewSelect>>', self._on_tree_select)
         
         # Export frame
         export_frame = ttk.LabelFrame(main_frame, text="Export Options", padding="10")
@@ -372,6 +394,7 @@ GitHub: https://github.com/karllinder/ewexport"""
             for item in self.tree.get_children():
                 self.tree.delete(item)
             self.selected_songs.clear()
+            self._clear_preview()
             
             # Load songs
             self.all_songs = self.db.get_all_songs()
@@ -394,13 +417,16 @@ GitHub: https://github.com/karllinder/ewexport"""
             messagebox.showerror("Error", f"Failed to load database: {str(e)}")
     
     def on_item_click(self, event):
-        """Handle click on tree item to toggle selection"""
+        """Handle click on tree item to toggle selection and update preview"""
         region = self.tree.identify_region(event.x, event.y)
-        
+        item = self.tree.identify_row(event.y)
+
         if region == "tree":
-            item = self.tree.identify_row(event.y)
             if item:
                 self.toggle_item_selection(item)
+                self._update_preview_for_item(item)
+        elif region in ("cell", "heading") and item:
+            self._update_preview_for_item(item)
     
     def toggle_item_selection(self, item):
         """Toggle selection state of an item"""
@@ -705,6 +731,157 @@ GitHub: https://github.com/karllinder/ewexport"""
         else:
             self.result_count_label.config(text=f"Total: {total} songs")
     
+    def _setup_preview_panel(self, parent):
+        """Create the preview panel with metadata labels and lyrics text widget"""
+        parent.columnconfigure(0, weight=1)
+        parent.rowconfigure(1, weight=1)
+
+        # Song Details section
+        details_frame = ttk.LabelFrame(parent, text="Song Details", padding="5")
+        details_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), padx=2, pady=(0, 5))
+        details_frame.columnconfigure(1, weight=1)
+
+        self._preview_title_var = tk.StringVar(value="")
+        self._preview_author_var = tk.StringVar(value="")
+        self._preview_copyright_var = tk.StringVar(value="")
+        self._preview_ccli_var = tk.StringVar(value="")
+
+        ttk.Label(details_frame, text="Title:", font=('TkDefaultFont', 9, 'bold')).grid(
+            row=0, column=0, sticky=tk.W, padx=(0, 5))
+        ttk.Label(details_frame, textvariable=self._preview_title_var,
+                  font=('TkDefaultFont', 9, 'bold')).grid(row=0, column=1, sticky=tk.W)
+
+        ttk.Label(details_frame, text="Author:").grid(row=1, column=0, sticky=tk.W, padx=(0, 5))
+        ttk.Label(details_frame, textvariable=self._preview_author_var).grid(row=1, column=1, sticky=tk.W)
+
+        ttk.Label(details_frame, text="Copyright:").grid(row=2, column=0, sticky=tk.W, padx=(0, 5))
+        ttk.Label(details_frame, textvariable=self._preview_copyright_var).grid(row=2, column=1, sticky=tk.W)
+
+        ttk.Label(details_frame, text="CCLI/Ref:").grid(row=3, column=0, sticky=tk.W, padx=(0, 5))
+        ttk.Label(details_frame, textvariable=self._preview_ccli_var).grid(row=3, column=1, sticky=tk.W)
+
+        # Lyrics Preview section
+        lyrics_frame = ttk.LabelFrame(parent, text="Lyrics Preview", padding="5")
+        lyrics_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=2)
+        lyrics_frame.columnconfigure(0, weight=1)
+        lyrics_frame.rowconfigure(0, weight=1)
+
+        self._preview_text = tk.Text(lyrics_frame, wrap=tk.WORD, state='disabled',
+                                     font=('TkDefaultFont', 10))
+        self._preview_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        preview_scroll = ttk.Scrollbar(lyrics_frame, orient="vertical",
+                                       command=self._preview_text.yview)
+        preview_scroll.grid(row=0, column=1, sticky=(tk.N, tk.S))
+        self._preview_text.configure(yscrollcommand=preview_scroll.set)
+
+        # Configure text tags for formatting
+        self._preview_text.tag_configure('section_header',
+                                         font=('TkDefaultFont', 10, 'bold'),
+                                         foreground='#1a5fb4',
+                                         spacing1=10, spacing3=4)
+        self._preview_text.tag_configure('lyrics',
+                                         font=('TkDefaultFont', 10))
+        self._preview_text.tag_configure('no_content',
+                                         font=('TkDefaultFont', 10, 'italic'),
+                                         foreground='#888888')
+
+        # Show placeholder
+        self._clear_preview()
+
+    def _on_tree_select(self, event):
+        """Handle Treeview selection change (keyboard navigation)"""
+        selection = self.tree.selection()
+        if selection:
+            self._update_preview_for_item(selection[0])
+
+    def _update_preview_for_item(self, item):
+        """Fetch processed lyrics for the selected item and display preview"""
+        tags = self.tree.item(item, 'tags')
+        if not tags:
+            return
+
+        song_id = int(tags[0])
+
+        if not self.db:
+            return
+
+        try:
+            song_data = self.db.get_song_with_processed_lyrics(song_id)
+            if song_data:
+                self._display_preview(song_data)
+            else:
+                self._clear_preview("Could not load song data")
+        except Exception as e:
+            logger.warning(f"Failed to load preview for song {song_id}: {e}")
+            self._clear_preview("Error loading preview")
+
+    def _display_preview(self, song_data):
+        """Populate the preview panel with song metadata and formatted sections"""
+        # Update metadata labels
+        self._preview_title_var.set(song_data.get('title', ''))
+        self._preview_author_var.set(song_data.get('author', '') or '-')
+        self._preview_copyright_var.set(song_data.get('copyright', '') or '-')
+        self._preview_ccli_var.set(song_data.get('reference_number', '') or '-')
+
+        # Update lyrics text
+        self._preview_text.configure(state='normal')
+        self._preview_text.delete('1.0', tk.END)
+
+        sections = song_data.get('sections', [])
+        if not sections:
+            self._preview_text.insert(tk.END, "No lyrics available", 'no_content')
+            self._preview_text.configure(state='disabled')
+            return
+
+        for i, section in enumerate(sections):
+            section_type = section.get('type', 'Verse')
+            content = section.get('content', '')
+
+            # Section header
+            header = f"[{section_type}]"
+            self._preview_text.insert(tk.END, header + '\n', 'section_header')
+
+            # Section content
+            if content:
+                self._preview_text.insert(tk.END, content + '\n', 'lyrics')
+
+            # Add spacing between sections (except after last)
+            if i < len(sections) - 1:
+                self._preview_text.insert(tk.END, '\n', 'lyrics')
+
+        self._preview_text.configure(state='disabled')
+
+    def _clear_preview(self, message=None):
+        """Reset the preview panel to placeholder state"""
+        self._preview_title_var.set("")
+        self._preview_author_var.set("")
+        self._preview_copyright_var.set("")
+        self._preview_ccli_var.set("")
+
+        self._preview_text.configure(state='normal')
+        self._preview_text.delete('1.0', tk.END)
+        self._preview_text.insert(tk.END, message or "Click on a song to preview", 'no_content')
+        self._preview_text.configure(state='disabled')
+
+    def _save_sash_position(self):
+        """Save the PanedWindow sash position to config"""
+        try:
+            pos = self.paned.sashpos(0)
+            if pos > 0:
+                self.config.set('song_list.preview_sash_position', pos)
+        except (tk.TclError, IndexError):
+            pass
+
+    def _restore_sash_position(self):
+        """Restore saved sash position"""
+        saved = self.config.get('song_list.preview_sash_position')
+        if saved is not None and int(saved) > 0:
+            try:
+                self.paned.sashpos(0, int(saved))
+            except (tk.TclError, ValueError):
+                pass
+
     def clear_search(self):
         """Clear the search field and show all songs"""
         self.search_var.set('')
@@ -774,7 +951,7 @@ GitHub: https://github.com/karllinder/ewexport"""
                 self.root.state('zoomed' if os.name == 'nt' else 'normal')
         else:
             # Default geometry
-            self.root.geometry("900x700")
+            self.root.geometry("1200x700")
     
     def _save_window_geometry(self):
         """Save current window geometry"""
@@ -802,7 +979,10 @@ GitHub: https://github.com/karllinder/ewexport"""
         """Handle window closing"""
         # Save window geometry
         self._save_window_geometry()
-        
+
+        # Save preview sash position
+        self._save_sash_position()
+
         # Save column widths if tree exists
         if hasattr(self, 'tree'):
             widths = {}
