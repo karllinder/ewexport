@@ -22,7 +22,7 @@ if sys.platform == 'win32':
     try:
         sys.stdout.reconfigure(encoding='utf-8')
         sys.stderr.reconfigure(encoding='utf-8')
-    except:
+    except (AttributeError, OSError):
         pass
 
 def get_version():
@@ -101,12 +101,12 @@ def verify_executable():
     
     # Test if executable runs
     try:
-        result = subprocess.run([str(exe_path), '--version'], 
+        result = subprocess.run([str(exe_path), '--version'],
                               capture_output=True, text=True, timeout=10)
         if result.returncode == 0 or 'ewexport' in result.stderr.lower():
             print("   ✅ Executable verification passed")
             return True, sha256
-    except:
+    except (subprocess.SubprocessError, OSError):
         pass
     
     print("   ⚠️  Executable built but version check failed (this may be normal)")
@@ -150,7 +150,7 @@ def create_release_info(version, sha256):
     release_info = {
         "version": version,
         "build_date": datetime.now().isoformat(),
-        "build_machine": os.environ.get('COMPUTERNAME', 'unknown'),
+        "build_machine": "local",
         "sha256": sha256,
         "antivirus_notes": "Built with antivirus-friendly configuration. See ANTIVIRUS.md for details.",
         "python_version": sys.version,
@@ -210,7 +210,7 @@ def create_github_release(version, sha256):
             except subprocess.CalledProcessError as e:
                 print(f"   ❌ Upload failed: {e}")
                 return False
-    except:
+    except (subprocess.SubprocessError, OSError):
         pass  # Release doesn't exist, continue to create it
     
     # Create new release

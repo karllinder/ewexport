@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from pathlib import Path
 import os
+import re
 import threading
 import json
 import logging
@@ -301,7 +302,6 @@ GitHub: https://github.com/karllinder/ewexport"""
             Path(os.environ.get('PROGRAMDATA', 'C:\\ProgramData')) / 'Softouch' / 'Easyworship' / 'Default' / 'Databases' / 'Data',
             Path(os.environ.get('USERPROFILE', '')) / 'Documents' / 'EasyWorship' / 'Default' / 'Databases' / 'Data',
             Path('C:\\Users\\Public\\Documents\\Softouch\\Easyworship\\Default\\Databases\\Data'),
-            Path('C:\\Claud\\ewtest\\orginaldb'),  # Test path from CLAUDE.md
         ]
         
         for path in possible_paths:
@@ -788,7 +788,6 @@ GitHub: https://github.com/karllinder/ewexport"""
         
         geometry = self.root.geometry()
         # Parse geometry string (e.g., "900x700+100+50")
-        import re
         match = re.match(r'(\d+x\d+)\+(\d+)\+(\d+)', geometry)
         if match:
             size = match.group(1)
@@ -820,33 +819,6 @@ GitHub: https://github.com/karllinder/ewexport"""
         
         # Destroy window
         self.root.destroy()
-    
-    def load_saved_paths(self):
-        """Load saved paths from config (legacy method - use auto_load_database instead)"""
-        # This method is kept for compatibility but auto_load_database should be used
-        # Load last database path
-        last_db = self.config.get('paths.last_easyworship_path')
-        if last_db and Path(last_db).exists():
-            self.db_path.set(last_db)
-            # Auto-load songs if we have a valid database path
-            self.load_songs()
-        
-        # Load last export path or set default
-        self.load_export_path_settings()
-    
-    def set_default_output_path(self):
-        """Set default output path based on config or desktop"""
-        output_dir = self.config.get_export_directory()
-        if output_dir and output_dir.exists():
-            self.output_path.set(str(output_dir))
-        else:
-            # Default to Desktop/ProPresenter_Export
-            desktop = Path.home() / "Desktop"
-            if desktop.exists():
-                default_path = desktop / "ProPresenter_Export"
-                self.output_path.set(str(default_path))
-            else:
-                self.output_path.set(str(Path.home() / "ProPresenter_Export"))
     
     def _handle_first_run(self):
         """Handle first run setup"""

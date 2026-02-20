@@ -95,7 +95,7 @@ def create_release_info(version, sha256):
     release_info = {
         "version": version,
         "build_date": datetime.now().isoformat(),
-        "build_machine": os.environ.get('COMPUTERNAME', 'unknown'),
+        "build_machine": "local",
         "sha256": sha256,
         "antivirus_notes": "Built with antivirus-friendly configuration.",
         "python_version": sys.version,
@@ -154,7 +154,7 @@ def create_github_release(version, sha256):
             except subprocess.CalledProcessError as e:
                 print(f"   [ERROR] Upload failed: {e}")
                 return False
-    except:
+    except (subprocess.SubprocessError, OSError):
         pass  # Release doesn't exist, continue to create it
     
     # Create release notes with SHA256

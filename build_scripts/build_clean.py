@@ -95,7 +95,7 @@ def verify_clean_build():
             print("WARNING: UPX compression detected (may trigger antivirus)")
         else:
             print("Good: No UPX compression detected")
-    except:
+    except (subprocess.SubprocessError, OSError):
         print("Could not verify UPX usage")
     
     return True

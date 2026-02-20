@@ -97,7 +97,7 @@ If your antivirus flags this file:
                 '--notes', release_body
             ], check=True)
             print("[INFO] Updated release notes with SHA256")
-        except:
+        except (subprocess.SubprocessError, OSError):
             print("[WARNING] Could not update release notes (this is OK)")
         
         return True
