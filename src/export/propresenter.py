@@ -8,7 +8,6 @@ import xml.dom.minidom
 import uuid
 import re
 import base64
-import errno
 import logging
 from pathlib import Path
 from typing import List, Dict, Optional, Any, Tuple
@@ -488,9 +487,6 @@ class ProPresenter6Exporter:
     
     def fix_self_closing_tags(self, xml_string: str) -> str:
         """Fix self-closing array tags to have proper opening/closing tags"""
-        # Replace self-closing array tags with proper opening/closing tags
-        import re
-        
         # Pattern to match self-closing array tags
         pattern = r'<array([^>]*?)rvXMLIvarName="([^"]*?)"([^>]*?)/>'
         
@@ -802,38 +798,3 @@ class ProPresenter6Exporter:
             error_msg = f"Failed to export '{title}' (ID: {song_id}): {str(e)}"
             logger.error(error_msg, exc_info=True)
             return False, error_msg
-
-
-def create_sample_pro6():
-    """Create a sample .pro6 file for testing"""
-    exporter = ProPresenter6Exporter()
-    
-    sample_song = {
-        'title': 'Amazing Grace',
-        'author': 'John Newton',
-        'copyright': 'Public Domain',
-        'administrator': '',
-        'reference_number': '12345'
-    }
-    
-    sample_sections = [
-        {
-            'type': 'verse',
-            'content': 'Amazing grace how sweet the sound\nThat saved a wretch like me\n\nI once was lost but now am found\nWas blind but now I see'
-        },
-        {
-            'type': 'verse', 
-            'content': 'Twas grace that taught my heart to fear\nAnd grace my fears relieved\n\nHow precious did that grace appear\nThe hour I first believed'
-        },
-        {
-            'type': 'chorus',
-            'content': 'My chains are gone, I\'ve been set free\nMy God, my Savior has ransomed me\n\nAnd like a flood His mercy reigns\nUnending love, amazing grace'
-        }
-    ]
-    
-    success, result = exporter.export_song(sample_song, sample_sections, Path("./"))
-    print(f"Sample export: {success} - {result}")
-
-
-if __name__ == "__main__":
-    create_sample_pro6()

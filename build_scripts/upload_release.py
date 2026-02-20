@@ -92,7 +92,7 @@ If your antivirus flags this file:
                 '--notes-file', '-'
             ], input=release_body, text=True, check=True)
             print("📝 Updated release notes with SHA256")
-        except:
+        except (subprocess.SubprocessError, OSError):
             print("⚠️  Could not update release notes (this is OK)")
         
         return True

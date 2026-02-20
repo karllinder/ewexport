@@ -7,6 +7,7 @@ from tkinter import ttk, messagebox, filedialog
 import json
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Dict, Any, Optional
 import shutil
@@ -312,9 +313,8 @@ class SettingsWindow:
         preview = f"Input: {test_text}\n"
         preview += f"Output: {result}\n\n"
         preview += "Mapping Process:\n"
-        
+
         # Extract base name and number
-        import re
         match = re.match(r'^(.*?)(\s+\d+)?$', test_text.lower().strip())
         if match:
             base = match.group(1)
@@ -331,8 +331,6 @@ class SettingsWindow:
     
     def apply_section_mapping(self, text: str) -> str:
         """Apply section mapping to text"""
-        import re
-        
         # Extract section name and optional number
         match = re.match(r'^(.*?)(\s+\d+)?$', text.strip())
         if not match:
@@ -696,9 +694,3 @@ class MappingDialog:
     def cancel_clicked(self):
         """Handle Cancel button"""
         self.dialog.destroy()
-
-
-if __name__ == "__main__":
-    # Test the settings window standalone
-    window = SettingsWindow()
-    window.window.mainloop()
