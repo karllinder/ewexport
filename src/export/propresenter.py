@@ -663,6 +663,9 @@ class ProPresenter6Exporter:
                         else:
                             # Custom rename
                             custom_name = action.split(':', 1)[1] if ':' in action else action
+                            # Sanitize so a name like "..\evil" cannot escape the
+                            # chosen export directory or introduce path separators.
+                            custom_name = self.sanitize_filename(custom_name)
                             file_path = file_path.parent / f"{custom_name}.pro6"
                 
                 # Export song with potentially modified path
