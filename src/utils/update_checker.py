@@ -146,10 +146,17 @@ class UpdateChecker:
     
     def open_specific_release(self, release_url: str):
         """Open a specific release page in the default browser
-        
+
         Args:
             release_url: URL to the specific release
         """
+        # Only allow https:// URLs. The release URL comes from the GitHub API
+        # response, so a compromised release could otherwise supply javascript:,
+        # file://, or an OS-registered scheme handler.
+        if not isinstance(release_url, str) or not release_url.startswith('https://'):
+            logger.warning(f"Refusing to open non-https release URL: {release_url!r}")
+            webbrowser.open(self.GITHUB_RELEASES_URL)
+            return
         webbrowser.open(release_url)
     
     def should_check_on_startup(self) -> bool:
